@@ -16,7 +16,9 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Simulamos el envío del formulario eligiendo el año 2026
+    const decoder = new TextDecoder('iso-8859-1');
+
+    // 1. Obtener la página principal seleccionando el año 2026
     const formData = new URLSearchParams();
     formData.append('ano', '2026');
 
@@ -25,41 +27,62 @@ export default async function handler(req, res) {
       headers,
       body: formData.toString()
     });
-
-    const buffer = await resp.arrayBuffer();
-    const decoder = new TextDecoder('iso-8859-1');
-    const html = decoder.decode(buffer);
+    const htmlMain = decoder.decode(await resp.arrayBuffer());
 
     const teams = [];
     const seen = new Set();
 
-    // Extraer cualquier enlace o texto que represente equipos o divisiones en el año 2026
-    const anchorRegex = /<a[^>]*href=["']([^"']*(?:Equipo|Calendario|Clasificacion|Liga)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
-    let m;
-    while ((m = anchorRegex.exec(html)) !== null) {
-      const href = m[1].trim();
-      const rawName = m[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-      
-      if (!rawName || rawName.length < 3) continue;
-      if (/^(ver|calendario|clasificaci|resultados|volver|inicio|siguiente|anterior|2026|2025|2024)/i.test(rawName)) continue;
+    // 2. Encontrar los enlaces de las ligas principales (ej. Liga_previo?id=...)
+    const leagueLinks = [];
+    const leagueRegex = /<a[^>]*href=["']([^"']*Liga_previo[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    let match;
+    while ((match = leagueRegex.exec(htmlMain)) !== null) {
+      const href = match[1].trim();
+      const name = match[2].replace(/<[^>]+>/g, '').trim();
+      const fullUrl = href.startsWith('http') ? href : `${BASE_URL}/${href.replace(/^\//, '')}`;
+      if (!leagueLinks.some(l => l.url === fullUrl)) {
+        leagueLinks.push({ name, url: fullUrl });
+      }
+    }
 
-      const key = rawName.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
+    // Si no encuentra enlaces directos de liga, probamos a raspar la misma página principal
+    const targetUrls = leagueLinks.length > 0 ? leagueLinks : [{ name: 'Liga Cántabra', url: START_URL }];
 
-      teams.push({
-        id: Buffer.from(key).toString('base64').replace(/=/g, ''),
-        name: rawName,
-        category: 'Liga Cántabra 2026',
-        categoryId: '2026',
-        detailUrl: href.startsWith('http') ? href : `${BASE_URL}/${href.replace(/^\//, '')}`
-      });
+    // 3. Entrar en cada sección de liga para extraer los equipos
+    for (const league of targetUrls) {
+      try {
+        const leagueResp = await fetch(league.url, { headers });
+        const leagueHtml = decoder.decode(await leagueResp.arrayBuffer());
+
+        // Buscar nombres de equipos en tablas o enlaces internos de equipos
+        const teamRegex = /<a[^>]*href=["']([^"']*(?:Equipo|Calendario|Clasificacion)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+        let tMatch;
+        while ((tMatch = teamRegex.exec(leagueHtml)) !== null) {
+          const rawName = tMatch[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+          if (!rawName || rawName.length < 3) continue;
+          if (/^(ver|calendario|clasificaci|resultados|volver|inicio|siguiente|anterior|2026|liga)/i.test(rawName)) continue;
+
+          const key = `${league.name}::${rawName.toLowerCase()}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+
+          teams.push({
+            id: Buffer.from(key).toString('base64').replace(/=/g, ''),
+            name: rawName,
+            category: league.name,
+            categoryId: '2026'
+          });
+        }
+      } catch (e) {
+        // Ignorar errores individuales de sub-enlaces y continuar
+      }
     }
 
     return res.status(200).json({
       ok: true,
       source: START_URL,
       updatedAt: new Date().toISOString(),
+      leaguesFound: targetUrls.length,
       teamsCount: teams.length,
       teams
     });
