@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padelaldia - Liga Cántabra de Pádel</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
+    <!-- Header -->
+    <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 text-slate-950 p-2.5 rounded-xl font-black text-xl tracking-wider shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Padelaldia <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-medium border border-emerald-500/30">FCP Live</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Liga Cántabra de Pádel • Calendarios y Estadísticas</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button onclick="sincronizarDatos()" id="syncBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-sync" id="syncIcon"></i> Actualizar FCP
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <!-- Search & Filters -->
+        <div class="bg-slate-950/80 backdrop-blur border border-slate-800 rounded-2xl p-4 shadow-xl">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="md:col-span-2 relative">
+                    <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar por equipo, club o sede (ej. Racket, Zink, Monteverde...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                </div>
+                <div>
+                    <select id="categoryFilter" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                        <option value="all">Todas las Categorías</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div id="contentArea" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left & Middle: Team Info & Matches -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Selected Team Card -->
+                <div id="teamCard" class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <div>
+                            <span id="teamCategoryBadge" class="text-xs uppercase tracking-wider font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20"></span>
+                            <h2 id="teamNameTitle" class="text-2xl font-black text-white mt-2"></h2>
+                        </div>
+                        <button onclick="copiarAvisoWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-emerald-400 text-sm"></i> Copiar aviso WhatsApp
+                        </button>
+                    </div>
+
+                    <!-- Next Match Highlight -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 mb-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-days text-emerald-400"></i> Próximo Enfrentamiento
+                            </span>
+                            <span id="nextMatchDate" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md">--/--/----</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <p class="text-xs text-slate-400">Rival / Sede:</p>
+                                <p id="nextMatchRival" class="text-lg font-bold text-white mt-0.5">--</p>
+                                <p id="nextMatchSede" class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-location-dot text-emerald-400"></i> <span>--</span>
+                                </p>
+                            </div>
+                            <a id="mapLink" href="#" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md w-full sm:w-auto justify-center">
+                                <i class="fa-solid fa-diamond-turn-right"></i> Cómo llegar (Maps)
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Matches History Table -->
+                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> Calendario y Resultados
+                    </h3>
+                    <div class="overflow-x-auto rounded-xl border border-slate-800">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900 text-xs text-slate-400 border-b border-slate-800">
+                                    <th class="p-3">Jor.</th>
+                                    <th class="p-3">Fecha</th>
+                                    <th class="p-3">Enfrentamiento</th>
+                                    <th class="p-3 text-center">Resultado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matchHistoryBody" class="divide-y divide-slate-800 text-sm">
+                                <tr>
+                                    <td colspan="4" class="p-4 text-center text-slate-500">Selecciona un equipo para ver sus partidos.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="bg-slate-950 border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
+                    <div class="w-16 h-16 bg-slate-900 border border-slate-800 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Busca tu equipo en la Liga Cántabra</h3>
+                    <p class="text-sm text-slate-400 max-w-md mx-auto mt-1">Escribe el nombre de tu club arriba o selecciona un equipo del listado lateral para consultar sedes, mapas y jornadas.</p>
+                </div>
+            </div>
+
+            <!-- Right: Teams Directory Sidebar -->
+            <div class="space-y-4">
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-emerald-400"></i> Equipos Disponibles
+                        </h3>
+                        <span id="teamsCountBadge" class="text-xs bg-slate-900 text-slate-400 px-2 py-0.5 rounded-full border border-slate-800">0</span>
+                    </div>
+                    <div id="teamsList" class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                        <p class="text-xs text-slate-500 text-center py-6">Cargando equipos de la FCP...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-4 py-8 text-center text-xs text-slate-500 border-t border-slate-800/60 mt-12">
+        <p>Padelaldia • Conectado con la Federación Cántabra de Pádel (FCP)</p>
+    </footer>
+
+    <script>
+        let allTeamsData = [];
+        let selectedTeam = null;
+
+        async function sincronizarDatos() {
+            const btn = document.getElementById('syncBtn');
+            const icon = document.getElementById('syncIcon');
+            btn.disabled = true;
+            icon.classList.add('fa-spin');
+
+            try {
+                const res = await fetch('/api/fcp.js');
+                const data = await res.json();
+                if (data.ok && data.teams) {
+                    allTeamsData = data.teams;
+                    poblarFiltroCategorias(data.categories);
+                    renderizarListaEquipos(allTeamsData);
+                    alert(`¡Sincronización exitosa! Se han cargado ${allTeamsData.length} equipos desde la Federación.`);
+                } else {
+                    throw new Error('Respuesta inválida');
+                }
+            } catch (e) {
+                console.warn('Usando datos locales de respaldo por CORS/Entorno:', e);
+                cargarDatosRespaldo();
+            } finally {
+                btn.disabled = false;
+                icon.classList.remove('fa-spin');
+            }
+        }
+
+        function cargarDatosRespaldo() {
+            allTeamsData = [
+                { id: '1', name: 'Pádel Zink A', category: '1ª División Masculina', categoryId: '1', nextMatch: { date: '15/11/2026', rival: 'Racket Santander A', sede: 'Pádel Zink (Camargo)' }, matches: [{ jor: 1, date: '08/11/2026', rival: 'Central Pádel B', result: '3 - 0' }] },
+                { id: '2', name: 'Racket Santander A', category: '1ª División Masculina', categoryId: '1', nextMatch: { date: '15/11/2026', rival: 'Pádel Zink A', sede: 'Racket Club (Santander)' }, matches: [{ jor: 1, date: '08/11/2026', rival: 'Monteverde A', result: '2 - 1' }] },
+                { id: '3', name: 'Club Pádel Monteverde A', category: '2ª División Masculina', categoryId: '2', nextMatch: { date: '16/11/2026', rival: 'La Marina Pádel', sede: 'Monteverde (Bezana)' }, matches: [{ jor: 1, date: '09/11/2026', rival: 'Torrelavega A', result: '1 - 2' }] },
+                { id: '4', name: 'Central Pádel', category: '3ª División Masculina', categoryId: '3', nextMatch: { date: '15/11/2026', rival: 'Sardinero HC', sede: 'Central Pádel (Santander)' }, matches: [{ jor: 1, date: '08/11/2026', rival: 'Corrales A', result: '3 - 0' }] }
+            ];
+            poblarFiltroCategorias([{ id: '1', name: '1ª División Masculina' }, { id: '2', name: '2ª División Masculina' }, { id: '3', name: '3ª División Masculina' }]);
+            renderizarListaEquipos(allTeamsData);
+        }
+
+        function poblarFiltroCategorias(categories) {
+            const select = document.getElementById('categoryFilter');
+            select.innerHTML = '<option value="all">Todas las Categorías</option>';
+            if (!categories) return;
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderizarListaEquipos(teams) {
+            const list = document.getElementById('teamsList');
+            const countBadge = document.getElementById('teamsCountBadge');
+            countBadge.textContent = teams.length;
+
+            if (teams.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">No se encontraron equipos.</p>';
+                return;
+            }
+
+            list.innerHTML = teams.map(t => `
+                <div onclick="seleccionarEquipo('${t.id}')" class="bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/50 p-3 rounded-xl cursor-pointer transition flex items-center justify-between group">
+                    <div>
+                        <p class="text-sm font-bold text-white group-hover:text-emerald-400 transition">${t.name}</p>
+                        <p class="text-xs text-slate-400 mt-0.5">${t.category || 'Liga Cántabra'}</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-600 group-hover:text-emerald-400 transition"></i>
+                </div>
+            `).join('');
+        }
+
+        function seleccionarEquipo(id) {
+            const team = allTeamsData.find(t => t.id === id);
+            if (!team) return;
+            selectedTeam = team;
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('teamCard').classList.remove('hidden');
+
+            document.getElementById('teamNameTitle').textContent = team.name;
+            document.getElementById('teamCategoryBadge').textContent = team.category || 'Liga Cántabra';
+
+            const next = team.nextMatch || { date: 'Por confirmar', rival: 'Pendiente de asignar', sede: 'Instalación FCP' };
+            document.getElementById('nextMatchDate').textContent = next.date;
+            document.getElementById('nextMatchRival').textContent = next.rival;
+            document.getElementById('nextMatchSede').querySelector('span').textContent = next.sede;
+
+            const mapQuery = encodeURIComponent(`Pádel ${next.sede} Cantabria`);
+            document.getElementById('mapLink').href = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
+
+            const historyBody = document.getElementById('matchHistoryBody');
+            const matches = team.matches || [{ jor: '-', date: '-', rival: 'Sin partidos registrados aún', result: '- / -' }];
+            historyBody.innerHTML = matches.map(m => `
+                <tr class="hover:bg-slate-900/50 transition">
+                    <td class="p-3 font-semibold text-slate-300">${m.jor}</td>
+                    <td class="p-3 text-slate-400">${m.date}</td>
+                    <td class="p-3 text-white font-medium">${m.rival}</td>
+                    <td class="p-3 text-center font-bold text-emerald-400">${m.result}</td>
+                </tr>
+            `).join('');
+        }
+
+        function copiarAvisoWhatsApp() {
+            if (!selectedTeam) return;
+            const next = selectedTeam.nextMatch || { date: 'Próximamente', rival: 'Por confirmar', sede: 'Por confirmar' };
+            const texto = `🎾 *PRÓXIMO PARTIDO - ${selectedTeam.name.toUpperCase()}*\n\n📅 Fecha: ${next.date}\n🆚 Rival: ${next.rival}\n📍 Sede: ${next.sede}\n\nConsulta mapas y actas en directo en Padelaldia.`;
+            navigator.clipboard.writeText(texto);
+            alert('¡Aviso copiado al portapapeles! Ya puedes pegarlo directamente en tu grupo de WhatsApp.');
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const catId = document.getElementById('categoryFilter').value;
+            const filtered = allTeamsData.filter(t => {
+                const matchName = t.name.toLowerCase().includes(term) || (t.category && t.category.toLowerCase().includes(term));
+                const matchCat = catId === 'all' || t.categoryId === catId;
+                return matchName && matchCat;
+            });
+            renderizarListaEquipos(filtered);
+        });
+
+        document.getElementById('categoryFilter').addEventListener('change', (e) => {
+            const catId = e.target.value;
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allTeamsData.filter(t => {
+                const matchCat = catId === 'all' || t.categoryId === catId;
+                const matchName = t.name.toLowerCase().includes(term);
+                return matchCat && matchName;
+            });
+            renderizarListaEquipos(filtered);
+        });
+
+        window.addEventListener('DOMContentLoaded', sincronizarDatos);
+    </script>
+</body>
+</html>
