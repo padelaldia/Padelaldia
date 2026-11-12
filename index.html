@@ -11,7 +11,7 @@
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="irAlInicio()" title="Volver al inicio">
                 <div class="bg-emerald-500 text-white p-2.5 rounded-xl font-black text-xl tracking-wider shadow-lg shadow-emerald-500/20">
                     <i class="fa-solid fa-table-tennis-paddle-ball"></i>
                 </div>
@@ -20,9 +20,14 @@
                     <p class="text-xs text-slate-500">Liga Cántabra de Pádel • Calendarios y Estadísticas</p>
                 </div>
             </div>
-            <div class="text-xs text-slate-500 flex items-center gap-2">
-                <i class="fa-regular fa-clock text-emerald-600"></i>
-                <span id="updatedAt">Cargando datos...</span>
+            <div class="flex items-center gap-4">
+                <button onclick="irAlInicio()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                    <i class="fa-solid fa-house"></i> Inicio
+                </button>
+                <div class="text-xs text-slate-500 flex items-center gap-2">
+                    <i class="fa-regular fa-clock text-emerald-600"></i>
+                    <span id="updatedAt">Cargando datos...</span>
+                </div>
             </div>
         </div>
     </header>
@@ -50,6 +55,7 @@
         <div class="flex gap-2">
             <button id="tabEquipos" onclick="setVista('equipos')" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"><i class="fa-solid fa-shield-halved mr-1.5"></i>Equipos</button>
             <button id="tabJornadas" onclick="setVista('jornadas')" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"><i class="fa-solid fa-calendar-week mr-1.5"></i>Jornadas</button>
+            <button id="tabJugadores" onclick="setVista('jugadores')" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"><i class="fa-solid fa-user-group mr-1.5"></i>Jugadores</button>
         </div>
 
         <div id="viewTeams" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -138,6 +144,12 @@
                             <tbody id="standingsBody" class="divide-y divide-slate-200 text-sm"></tbody>
                         </table>
                     </div>
+
+                    <!-- Jugadores del equipo -->
+                    <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mt-6 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-user-group text-emerald-600"></i> Jugadores del equipo
+                    </h3>
+                    <div id="teamPlayers"></div>
                 </div>
 
                 <div id="emptyState" class="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center">
@@ -178,6 +190,15 @@
                 </div>
             </div>
             <div id="jornadasContent"></div>
+        </div>
+
+        <!-- Vista de jugadores -->
+        <div id="viewJugadores" class="hidden bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2 mb-1">
+                <i class="fa-solid fa-trophy text-emerald-600"></i> Jugadores con más partidos ganados
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">Usa los filtros de arriba (género, categoría y buscador por nombre o equipo). Solo cuentan los enfrentamientos ya jugados.</p>
+            <div id="jugadoresContent"></div>
         </div>
     </main>
 
@@ -244,14 +265,24 @@
             if ([...sel.options].some((o) => o.value === actual)) sel.value = actual;
         }
 
+        // Búsqueda tolerante: sin tildes, sin mayúsculas y con las palabras en cualquier orden
+        function norm(s) {
+            return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+        }
+
+        function coincide(texto, term) {
+            const t = norm(texto);
+            return norm(term).split(/\s+/).filter(Boolean).every((p) => t.includes(p));
+        }
+
         function equiposFiltrados() {
-            const term = $('searchInput').value.trim().toLowerCase();
+            const term = $('searchInput').value.trim();
             const genero = $('generoFilter').value;
             const cat = $('categoryFilter').value;
             return DATA.teams.filter((t) =>
                 (genero === 'all' || t.genero === genero) &&
                 (cat === 'all' || t.categoryId === cat) &&
-                (!term || t.name.toLowerCase().includes(term) || t.category.toLowerCase().includes(term)));
+                (!term || coincide(t.name + ' ' + t.category, term)));
         }
 
         function aplicarFiltros() {
@@ -280,11 +311,25 @@
         }
 
         // Últimos n partidos ya jugados (con resultado), del más antiguo al más reciente
+        // Orden cronológico: por fecha real si la hay y, si no, por número de partido (= orden de jornada)
+        function ordenPartidos(a, b) {
+            if (a.dateIso && b.dateIso && a.dateIso !== b.dateIso) return a.dateIso < b.dateIso ? -1 : 1;
+            return a.partido - b.partido;
+        }
+
         function ultimosJugados(team, n = 5) {
             return team.matches
                 .filter((m) => m.for != null)
-                .sort((a, b) => a.partido - b.partido)
+                .sort(ordenPartidos)
                 .slice(-n);
+        }
+
+        function fechaTexto(m) {
+            if (m.dateIso) {
+                const [y, mo, d] = m.dateIso.split('-');
+                return `${d}/${mo}/${y}` + (m.time ? ' · ' + m.time : '');
+            }
+            return (m.date || 'Por fijar') + (m.time ? ' · ' + m.time : '');
         }
 
         function ficha(m) {
@@ -312,6 +357,10 @@
             const aFavor = u.reduce((s, m) => s + m.for, 0);
             const enContra = u.reduce((s, m) => s + m.against, 0);
             const pct = Math.round((aFavor / (aFavor + enContra)) * 100);
+            const det = u.filter((m) => m.setsFor != null);
+            const suma = (campo) => det.reduce((s, m) => s + m[campo], 0);
+            const sets = det.length ? suma('setsFor') + ' - ' + suma('setsAgainst') : '—';
+            const juegos = det.length ? suma('gamesFor') + ' - ' + suma('gamesAgainst') : '—';
             const caja = (valor, etiqueta, color = 'text-slate-900') => `
                 <div class="bg-white border border-slate-200 rounded-xl p-3 text-center">
                     <p class="text-xl font-black ${color}">${valor}</p>
@@ -323,17 +372,20 @@
                     <td class="py-1.5 pr-3 text-slate-800">
                         <span class="text-[10px] uppercase tracking-wider ${m.home ? 'text-emerald-600' : 'text-slate-400'} mr-1">${m.home ? 'Local' : 'Visit.'}</span>${esc(m.rival)}
                     </td>
+                    <td class="py-1.5 pr-3 text-xs text-slate-500 text-right whitespace-nowrap">${m.setsFor != null ? esc(m.setsFor + '-' + m.setsAgainst + ' sets · ' + m.gamesFor + '-' + m.gamesAgainst + ' juegos') : ''}</td>
                     <td class="py-1.5 text-right">${resultadoHtml(m)}</td>
                 </tr>`).join('');
             return `
                 <div class="mb-4">${formaHtml(team)}</div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                     ${caja(v, 'Victorias', 'text-emerald-600')}
                     ${caja(d, 'Derrotas', 'text-red-600')}
-                    ${caja(aFavor + ' - ' + enContra, 'Partidos a favor / contra')}
                     ${caja(pct + '%', 'Partidos ganados')}
+                    ${caja(aFavor + ' - ' + enContra, 'Partidos a favor / contra')}
+                    ${caja(sets, 'Sets a favor / contra')}
+                    ${caja(juegos, 'Juegos a favor / contra')}
                 </div>
-                <table class="w-full text-sm"><tbody>${filas}</tbody></table>
+                <div class="overflow-x-auto"><table class="w-full text-sm"><tbody>${filas}</tbody></table></div>
                 <p class="text-[11px] text-slate-400 mt-2">Del más antiguo (izquierda) al más reciente (derecha). Cada enfrentamiento se juega a 5 partidos.</p>`;
         }
 
@@ -379,6 +431,7 @@
                 caja('Partidos ganados', s.partidos_ganados + '/' + s.partidos_disputados);
 
             $('last5Stats').innerHTML = ultimos5Html(team);
+            renderJugadoresEquipo(team);
 
             const next = proximoPartido(team);
             const link = $('mapLink');
@@ -410,7 +463,7 @@
             $('matchHistoryBody').innerHTML = team.matches.map((m) => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="p-3 font-semibold text-slate-700">${esc(m.jornada)}</td>
-                    <td class="p-3 text-slate-500">${esc(m.date || 'Por fijar')}${m.time ? ' · ' + esc(m.time) : ''}</td>
+                    <td class="p-3 text-slate-500">${esc(fechaTexto(m))}</td>
                     <td class="p-3 text-slate-900 font-medium">
                         <span class="text-[10px] uppercase tracking-wider ${m.home ? 'text-emerald-600' : 'text-slate-400'} mr-1">${m.home ? 'Local' : 'Visit.'}</span>${esc(m.rival)}
                     </td>
@@ -458,12 +511,103 @@
             vista = v;
             $('viewTeams').classList.toggle('hidden', v !== 'equipos');
             $('viewJornadas').classList.toggle('hidden', v !== 'jornadas');
+            $('viewJugadores').classList.toggle('hidden', v !== 'jugadores');
             const on = 'bg-emerald-600 text-white border-emerald-600';
             const off = 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50';
             const base = 'px-4 py-2 rounded-xl text-sm font-semibold border transition ';
             $('tabEquipos').className = base + (v === 'equipos' ? on : off);
             $('tabJornadas').className = base + (v === 'jornadas' ? on : off);
+            $('tabJugadores').className = base + (v === 'jugadores' ? on : off);
             if (v === 'jornadas') renderJornadas();
+            if (v === 'jugadores') renderJugadores();
+        }
+
+        // ---------- Jugadores (se cargan solo cuando hacen falta) ----------
+        let JUG = null;
+        let jugPromesa = null;
+
+        function cargarJugadores() {
+            if (!jugPromesa) {
+                jugPromesa = fetch('datos/jugadores.json', { cache: 'no-cache' })
+                    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    .then((j) => { JUG = j.players || []; return JUG; })
+                    .catch((e) => { jugPromesa = null; throw e; });
+            }
+            return jugPromesa;
+        }
+
+        function filaJugador(j, pos, mostrarEquipo) {
+            const pct = j.played ? Math.round((j.won / j.played) * 100) : 0;
+            return `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 text-slate-500">${pos}</td>
+                    <td class="p-3 font-medium text-slate-900">${esc(j.name)}</td>
+                    ${mostrarEquipo ? `<td class="p-3 text-slate-600"><a href="#" onclick="seleccionarEquipo('${esc(j.categoryId + ':' + j.teamId)}'); return false;" class="hover:text-emerald-700">${esc(j.team)}</a><span class="block text-[11px] text-slate-400">${esc(j.category)}</span></td>` : ''}
+                    <td class="p-3 text-center text-slate-600">${j.played}</td>
+                    <td class="p-3 text-center font-bold text-emerald-600">${j.won}</td>
+                    <td class="p-3 text-center text-red-600">${j.lost}</td>
+                    <td class="p-3 text-center text-slate-600">${pct}%</td>
+                    <td class="p-3 text-center text-slate-500 whitespace-nowrap">${j.setsFor}-${j.setsAgainst}</td>
+                    <td class="p-3 text-center text-slate-500 whitespace-nowrap">${j.gamesFor}-${j.gamesAgainst}</td>
+                </tr>`;
+        }
+
+        function tablaJugadores(lista, mostrarEquipo) {
+            return `
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead><tr class="bg-slate-100 text-xs text-slate-500 border-b border-slate-200">
+                            <th class="p-3">#</th><th class="p-3">Jugador</th>${mostrarEquipo ? '<th class="p-3">Equipo</th>' : ''}
+                            <th class="p-3 text-center">PJ</th><th class="p-3 text-center">PG</th><th class="p-3 text-center">PP</th>
+                            <th class="p-3 text-center">% vict.</th><th class="p-3 text-center">Sets</th><th class="p-3 text-center">Juegos</th>
+                        </tr></thead>
+                        <tbody class="divide-y divide-slate-200">${lista.map((j, i) => filaJugador(j, i + 1, mostrarEquipo)).join('')}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        async function renderJugadores() {
+            const cont = $('jugadoresContent');
+            cont.innerHTML = '<p class="text-sm text-slate-500 py-6 text-center">Cargando jugadores...</p>';
+            try {
+                await cargarJugadores();
+            } catch (e) {
+                cont.innerHTML = '<p class="text-sm text-red-600 py-6 text-center">Todavía no hay datos de jugadores (' + esc(e.message) + ').</p>';
+                return;
+            }
+            if (vista !== 'jugadores') return;
+            const term = $('searchInput').value.trim();
+            const genero = $('generoFilter').value;
+            const cat = $('categoryFilter').value;
+            const lista = JUG.filter((j) =>
+                (genero === 'all' || j.genero === genero) &&
+                (cat === 'all' || j.categoryId === cat) &&
+                (!term || coincide(j.name + ' ' + j.team, term)));
+            const LIMITE = 100;
+            if (!lista.length) {
+                cont.innerHTML = '<p class="text-sm text-slate-500 py-6 text-center">No hay jugadores con esos filtros.</p>';
+                return;
+            }
+            cont.innerHTML = tablaJugadores(lista.slice(0, LIMITE), true) +
+                (lista.length > LIMITE
+                    ? `<p class="text-xs text-slate-400 mt-2">Mostrando los ${LIMITE} primeros de ${lista.length}. Afina con los filtros.</p>`
+                    : `<p class="text-xs text-slate-400 mt-2">${lista.length} jugadores. PJ: partidos jugados · PG: ganados · PP: perdidos.</p>`);
+        }
+
+        async function renderJugadoresEquipo(team) {
+            const cont = $('teamPlayers');
+            cont.innerHTML = '<p class="text-sm text-slate-500">Cargando jugadores...</p>';
+            try {
+                await cargarJugadores();
+            } catch (e) {
+                cont.innerHTML = '<p class="text-sm text-slate-500">Todavía no hay datos de jugadores.</p>';
+                return;
+            }
+            if (keyOf(team) !== selectedKey) return; // se ha cambiado de equipo mientras cargaba
+            const lista = JUG.filter((j) => j.categoryId === team.categoryId && j.teamId === team.id);
+            cont.innerHTML = lista.length
+                ? tablaJugadores(lista, false)
+                : '<p class="text-sm text-slate-500">Todavía no hay enfrentamientos jugados por este equipo.</p>';
         }
 
         function partidosDeCategoria(catId) {
@@ -533,14 +677,42 @@
             return r ? keyOf(r) : m.localKey;
         }
 
-        $('searchInput').addEventListener('input', aplicarFiltros);
-        $('generoFilter').addEventListener('change', () => {
-            poblarCategorias(); aplicarFiltros(); jornadaSel = null;
+        function refrescarVista() {
             if (vista === 'jornadas') renderJornadas();
+            if (vista === 'jugadores') renderJugadores();
+        }
+
+        function irAlInicio() {
+            selectedKey = null;
+            jornadaSel = null;
+            $('searchInput').value = '';
+            $('generoFilter').value = 'all';
+            poblarCategorias();
+            $('categoryFilter').value = 'all';
+            $('teamCard').classList.add('hidden');
+            $('emptyState').classList.remove('hidden');
+            history.replaceState(null, '', location.pathname);
+            setVista('equipos');
+            aplicarFiltros();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        $('searchInput').addEventListener('input', () => {
+            if (vista === 'jornadas') setVista('equipos'); // el buscador busca equipos
+            aplicarFiltros();
+            refrescarVista();
+        });
+        $('searchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && vista === 'equipos' && $('searchInput').value.trim()) {
+                const r = equiposFiltrados();
+                if (r.length) seleccionarEquipo(keyOf(r[0]));
+            }
+        });
+        $('generoFilter').addEventListener('change', () => {
+            poblarCategorias(); aplicarFiltros(); jornadaSel = null; refrescarVista();
         });
         $('categoryFilter').addEventListener('change', () => {
-            aplicarFiltros(); jornadaSel = null;
-            if (vista === 'jornadas') renderJornadas();
+            aplicarFiltros(); jornadaSel = null; refrescarVista();
         });
         window.addEventListener('DOMContentLoaded', () => { setVista('equipos'); cargarDatos(); });
     </script>
