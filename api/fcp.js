@@ -14,7 +14,6 @@ export default async function handler(req, res) {
   // Si es una petición POST, intentamos actualizar (requiere contraseña de admin)
   if (req.method === 'POST') {
     const { password } = req.body || {};
-    // Contraseña de administrador temporal (puedes cambiarla aquí o poner una variable de entorno)
     const ADMIN_SECRET = process.env.ADMIN_SECRET || 'padel2026';
 
     if (password !== ADMIN_SECRET) {
@@ -22,15 +21,18 @@ export default async function handler(req, res) {
     }
 
     try {
-      const BASE_URL = 'https://federacioncantabradepadel.com';
-      const START_URL = `${BASE_URL}/Liga_ListadoEquipos?`;
+      const BASE_URL = 'https://www.federacioncantabradepadel.com';
+      const START_URL = `${BASE_URL}/Liga_ListadoEquipos`;
       const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': BASE_URL
       };
 
+      // Simulamos el envío del formulario con los parámetros que la FCP suele procesar
       const formData = new URLSearchParams();
       formData.append('ano', '2026');
+      formData.append('ctl00$ContentPlaceHolder1$ddlAno', '2026'); // Parámetro común ASP.NET si aplica
 
       const resp = await fetch(START_URL, { method: 'POST', headers, body: formData.toString() });
       const buffer = await resp.arrayBuffer();
@@ -40,7 +42,9 @@ export default async function handler(req, res) {
       const teams = [];
       const seen = new Set();
       const leagueLinks = [];
-      const leagueRegex = /<a[^>]*href=["']([^"']*Liga_previo[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+      
+      // Búsqueda más flexible de enlaces de ligas o grupos
+      const leagueRegex = /<a[^>]*href=["']([^"']*(?:Liga_previo|grupo|categoria|fase)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
       let match;
       
       while ((match = leagueRegex.exec(htmlMain)) !== null) {
@@ -48,22 +52,28 @@ export default async function handler(req, res) {
         const name = match[2].replace(/<[^>]+>/g, '').trim();
         const fullUrl = href.startsWith('http') ? href : `${BASE_URL}/${href.replace(/^\//, '')}`;
         if (!leagueLinks.some(l => l.url === fullUrl)) {
-          leagueLinks.push({ name, url: fullUrl });
+          leagueLinks.push({ name: name || 'Liga Cántabra', url: fullUrl });
         }
       }
 
-      const targetUrls = leagueLinks.length > 0 ? leagueLinks : [{ name: 'Liga Cántabra', url: START_URL }];
+      // Si no encuentra enlaces específicos de fases, forzamos la URL principal como objetivo
+      const targetUrls = leagueLinks.length > 0 ? leagueLinks : [{ name: 'Liga Cántabra General', url: START_URL }];
 
       for (const league of targetUrls) {
         try {
           const leagueResp = await fetch(league.url, { headers });
           const leagueHtml = decoder.decode(await leagueResp.arrayBuffer());
-          const teamRegex = /<a[^>]*href=["']([^"']*(?:Equipo|Calendario|Clasificacion)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+          
+          // Regex mejorada para capturar nombres de equipos en tablas o enlaces internos
+          const teamRegex = /<a[^>]*href=["']([^"']*(?:Equipo|Calendario|Clasificacion|Club)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
           let tMatch;
+          
           while ((tMatch = teamRegex.exec(leagueHtml)) !== null) {
             const rawName = tMatch[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
             if (!rawName || rawName.length < 3) continue;
-            if (/^(ver|calendario|clasificaci|resultados|volver|inicio|siguiente|anterior|2026|liga)/i.test(rawName)) continue;
+            
+            // Filtramos palabras comunes que no son nombres de equipos
+            if (/^(ver|calendario|clasificaci|resultados|volver|inicio|siguiente|anterior|2026|liga|grupo|fase|club|página)/i.test(rawName)) continue;
 
             const key = `${league.name}::${rawName.toLowerCase()}`;
             if (seen.has(key)) continue;
@@ -76,23 +86,30 @@ export default async function handler(req, res) {
               categoryId: '2026'
             });
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error(`Error procesando liga ${league.name}:`, e.message);
+        }
       }
 
-      // Actualizamos la caché del servidor
+      // Actualizamos la caché del servidor solo si se encontraron equipos nuevos, o mantenemos los anteriores
       cachedData = {
         updatedAt: new Date().toISOString(),
         teams: teams.length > 0 ? teams : cachedData.teams
       };
 
-      return res.status(200).json({ ok: true, message: 'Sincronización completada', teamsCount: cachedData.teams.length, updatedAt: cachedData.updatedAt });
+      return res.status(200).json({ 
+        ok: true, 
+        message: 'Sincronización completada', 
+        teamsCount: cachedData.teams.length, 
+        updatedAt: cachedData.updatedAt 
+      });
 
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message });
     }
   }
 
-  // Si es una petición GET normal (la que usan los usuarios al abrir la app), devuelve los datos instantáneamente
+  // Petición GET normal para los usuarios
   return res.status(200).json({
     ok: true,
     updatedAt: cachedData.updatedAt || new Date().toISOString(),
