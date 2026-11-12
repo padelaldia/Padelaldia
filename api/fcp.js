@@ -11,12 +11,17 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  if (req.method === 'POST') {
-    const { password } = req.body || {};
-    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'padel2026';
+  // Determinamos si debemos actualizar los datos (por POST o si es un GET forzado/caché vacía)
+  const isPost = req.method === 'POST';
+  const isGetForce = req.method === 'GET' && (req.query?.force === 'true' || cachedData.teams.length === 0);
 
-    if (password !== ADMIN_SECRET) {
-      return res.status(401).json({ ok: false, error: 'Contraseña de administrador incorrecta.' });
+  if (isPost || isGetForce) {
+    if (isPost) {
+      const { password } = req.body || {};
+      const ADMIN_SECRET = process.env.ADMIN_SECRET || 'padel2026';
+      if (password !== ADMIN_SECRET) {
+        return res.status(401).json({ ok: false, error: 'Contraseña de administrador incorrecta.' });
+      }
     }
 
     try {
@@ -102,7 +107,8 @@ export default async function handler(req, res) {
         ok: true, 
         message: 'Sincronización completada', 
         teamsCount: cachedData.teams.length, 
-        updatedAt: cachedData.updatedAt 
+        updatedAt: cachedData.updatedAt,
+        teams: cachedData.teams
       });
 
     } catch (err) {
@@ -111,6 +117,7 @@ export default async function handler(req, res) {
     }
   }
 
+  // Petición GET normal para devolver la caché
   return res.status(200).json({
     ok: true,
     updatedAt: cachedData.updatedAt || new Date().toISOString(),
