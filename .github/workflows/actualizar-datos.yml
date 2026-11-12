@@ -11,6 +11,7 @@ permissions:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
+    timeout-minutes: 60      # la primera vez descarga el detalle de todos los enfrentamientos
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +29,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add datos/data.json
+          git add datos/data.json datos/jugadores.json datos/detalle.json
           git diff --staged --quiet || git commit -m "Actualizar datos"
           git push
