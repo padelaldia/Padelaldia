@@ -40,7 +40,6 @@ export default async function handler(req, res) {
       const decoder = new TextDecoder('iso-8859-1');
       const htmlMain = decoder.decode(buffer);
 
-      // DEPURO: Imprimimos los primeros 400 caracteres del HTML para ver qué está respondiendo realmente la web
       console.log('[SCRAPER] Extracto del HTML recibido:', htmlMain.substring(0, 400));
 
       const teams = [];
