@@ -91,8 +91,10 @@ def parsear(html, ctx):
                 "lugar": "",
                 "resultado": "",
             }
-            if estado == "cerrados":
-                p["resultado"] = lineas[0] if lineas else ""
+            primera = lineas[0] if lineas else ""
+            if estado == "cerrados" or re.fullmatch(r"\d+/\d+", primera):
+                # resultado ya jugado (también los "sin validar", con resultado provisional)
+                p["resultado"] = primera
             elif estado == "confecha":
                 m = re.match(r"(.+?)\s+(\d{1,2}:\d{2})$", lineas[0]) if lineas else None
                 if m:
