@@ -56,6 +56,7 @@
             <button id="tabEquipos" onclick="setVista('equipos')" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"><i class="fa-solid fa-shield-halved mr-1.5"></i>Equipos</button>
             <button id="tabJornadas" onclick="setVista('jornadas')" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"><i class="fa-solid fa-calendar-week mr-1.5"></i>Jornadas</button>
             <button id="tabJugadores" onclick="setVista('jugadores')" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"><i class="fa-solid fa-user-group mr-1.5"></i>Jugadores</button>
+            <button id="tabAlineaciones" onclick="setVista('alineaciones')" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"><i class="fa-solid fa-people-arrows mr-1.5"></i>Alineaciones</button>
         </div>
 
         <div id="viewTeams" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -67,9 +68,14 @@
                             <span id="teamCategoryBadge" class="text-xs uppercase tracking-wider font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200"></span>
                             <h2 id="teamNameTitle" class="text-2xl font-black text-slate-900 mt-2"></h2>
                         </div>
-                        <button onclick="copiarAvisoWhatsApp()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
-                            <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i> Copiar aviso WhatsApp
-                        </button>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="abrirAlineaciones()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                                <i class="fa-solid fa-people-arrows text-emerald-600 text-sm"></i> Preparar alineación
+                            </button>
+                            <button onclick="copiarAvisoWhatsApp()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                                <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i> Copiar aviso WhatsApp
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Resumen de clasificación -->
@@ -199,6 +205,27 @@
             </h3>
             <p class="text-xs text-slate-500 mb-4">Usa los filtros de arriba (género, categoría y buscador por nombre o equipo). Solo cuentan los enfrentamientos ya jugados.</p>
             <div id="jugadoresContent"></div>
+        </div>
+
+        <!-- Calculadora de alineaciones -->
+        <div id="viewAlineaciones" class="hidden space-y-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2 mb-1">
+                    <i class="fa-solid fa-people-arrows text-emerald-600"></i> Calculadora de alineaciones
+                </h3>
+                <p class="text-xs text-slate-500">Las parejas se numeran por la suma de puntos de sus dos jugadores (la nº 1 es la de mayor suma). La calculadora prueba todas las formas de emparejar a los jugadores disponibles y te propone las mejores.</p>
+                <details class="mt-3 text-xs text-slate-600">
+                    <summary class="cursor-pointer font-semibold text-slate-700">Normativa aplicada (Liga 2026/2027)</summary>
+                    <ul class="list-disc pl-5 mt-2 space-y-1">
+                        <li>5 parejas en masculino y 4 en femenino; un jugador no puede estar en dos partidos del mismo enfrentamiento.</li>
+                        <li>Las parejas deben ir ordenadas por puntos (mayor suma = pareja nº 1). La calculadora siempre las coloca en ese orden.</li>
+                        <li>Jugadores entre los 100 primeros del ranking FIP (masculino) o 70 (femenino) a 1/9/2026: deben ir en la pareja nº 1 (o nº 1, nº 2 y correlativas si hay varios). Márcalos con «Top FIP».</li>
+                        <li>La alineación se introduce en la web de la FCP hasta 5 minutos antes del enfrentamiento. Orden de entrada: 5-4-1-2-3 (masculino) y 4-3-1-2 (femenino).</li>
+                        <li>No se controla el límite de partidos de jugadores de equipos filiales (máximo 3 con equipos superiores en la Fase I): compruébalo tú.</li>
+                    </ul>
+                </details>
+            </div>
+            <div id="alinContent"></div>
         </div>
     </main>
 
@@ -512,14 +539,17 @@
             $('viewTeams').classList.toggle('hidden', v !== 'equipos');
             $('viewJornadas').classList.toggle('hidden', v !== 'jornadas');
             $('viewJugadores').classList.toggle('hidden', v !== 'jugadores');
+            $('viewAlineaciones').classList.toggle('hidden', v !== 'alineaciones');
             const on = 'bg-emerald-600 text-white border-emerald-600';
             const off = 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50';
             const base = 'px-4 py-2 rounded-xl text-sm font-semibold border transition ';
             $('tabEquipos').className = base + (v === 'equipos' ? on : off);
             $('tabJornadas').className = base + (v === 'jornadas' ? on : off);
             $('tabJugadores').className = base + (v === 'jugadores' ? on : off);
+            $('tabAlineaciones').className = base + (v === 'alineaciones' ? on : off);
             if (v === 'jornadas') renderJornadas();
             if (v === 'jugadores') renderJugadores();
+            if (v === 'alineaciones') renderAlineaciones();
         }
 
         // ---------- Jugadores (se cargan solo cuando hacen falta) ----------
@@ -619,6 +649,13 @@
             return out;
         }
 
+        function elegirCategoriaJornadas(id) {
+            $('categoryFilter').value = id;
+            jornadaSel = null;
+            aplicarFiltros();
+            renderJornadas();
+        }
+
         function cambiarJornada(delta) {
             const opts = [...$('jornadaSelect').options].map((o) => Number(o.value));
             const i = opts.indexOf(jornadaSel) + delta;
@@ -626,13 +663,24 @@
         }
 
         function renderJornadas() {
-            const cat = $('categoryFilter').value;
+            let cat = $('categoryFilter').value;
             const cont = $('jornadasContent');
             const sel = $('jornadaSelect');
             if (cat === 'all') {
-                sel.innerHTML = '';
-                cont.innerHTML = '<p class="text-sm text-slate-500 py-6 text-center">Elige una categoría en el filtro de arriba para ver sus jornadas.</p>';
-                return;
+                // sin categoría elegida: la del equipo que se estaba viendo o, si no, un botón por categoría
+                const actual = selectedKey && DATA.teams.find((t) => keyOf(t) === selectedKey);
+                if (actual) {
+                    cat = actual.categoryId;
+                    $('categoryFilter').value = cat;
+                } else {
+                    const genero = $('generoFilter').value;
+                    sel.innerHTML = '';
+                    cont.innerHTML = '<p class="text-sm text-slate-600 mb-3">Elige una categoría para ver sus jornadas:</p><div class="flex flex-wrap gap-2">' +
+                        DATA.categories.filter((c) => genero === 'all' || c.genero === genero).map((c) =>
+                            `<button onclick="elegirCategoriaJornadas('${esc(c.id)}')" class="bg-slate-50 hover:bg-emerald-50 border border-slate-300 hover:border-emerald-400 text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-lg text-xs font-medium transition">${esc(c.name)}</button>`).join('') +
+                        '</div>';
+                    return;
+                }
             }
             const todos = partidosDeCategoria(cat);
             const jornadas = [...new Set(todos.map((m) => m.jornada))].sort((a, b) => a - b);
@@ -677,9 +725,445 @@
             return r ? keyOf(r) : m.localKey;
         }
 
+        // ---------- Calculadora de alineaciones ----------
+        let PL = null;
+        let plPromesa = null;
+        let alinPedido = null;
+        const MAX_DISP = 14; // con más jugadores disponibles hay demasiadas combinaciones
+        const MODOS = {
+            rival: 'Mejor contra el rival',
+            fuerza: 'Mayor fuerza total',
+            equilibrada: 'Parejas más equilibradas'
+        };
+        const alin = { key: null, disp: new Set(), top: new Set(), pts: {}, rivalKey: '', rivalSlots: [],
+                       modo: 'rival', companero: null, res: null, msg: '' };
+
+        function cargarPlantillas() {
+            if (!plPromesa) {
+                plPromesa = fetch('datos/plantillas.json', { cache: 'no-cache' })
+                    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    .then((j) => { PL = j; return PL; })
+                    .catch((e) => { plPromesa = null; throw e; });
+            }
+            return plPromesa;
+        }
+
+        function titulo(s) {
+            return String(s || '').toLowerCase().replace(/(^|[\s-])(\S)/g, (m, a, c) => a + c.toUpperCase());
+        }
+        const nomJ = (j) => titulo(j.n + ' ' + j.a1);
+        const parKey = (i, j) => (i < j ? i + '-' + j : j + '-' + i);
+        const nParejas = (t) => (t.genero === 'F' ? 4 : 5);
+
+        // Puntos de un jugador del propio equipo (se pueden corregir a mano: [base, valor])
+        function ptsDe(t, i) {
+            const o = alin.pts[i];
+            return o && o[0] === t.players[i].pts ? o[1] : t.players[i].pts;
+        }
+
+        function guardarAlin() {
+            try {
+                localStorage.setItem('padelaldia.alin.' + alin.key, JSON.stringify(
+                    { disp: [...alin.disp], top: [...alin.top], pts: alin.pts }));
+            } catch (e) { /* sin almacenamiento: no pasa nada */ }
+        }
+
+        function leerAlin(key) {
+            try { return JSON.parse(localStorage.getItem('padelaldia.alin.' + key) || 'null'); } catch (e) { return null; }
+        }
+
+        function rivalPorDefecto(key) {
+            const dt = DATA.teams.find((t) => keyOf(t) === key);
+            const prox = dt ? proximoPartido(dt) : null;
+            if (!prox) return '';
+            const cat = key.split(':')[0];
+            const k = Object.keys(PL.teams).find((x) => x.split(':')[0] === cat && PL.teams[x].name === prox.rival);
+            return k || '';
+        }
+
+        function alinElegir(key) {
+            const t = PL.teams[key];
+            if (!t) return;
+            const N = t.players.length;
+            alin.key = key; alin.res = null; alin.msg = ''; alin.companero = null; alin.modo = 'rival';
+            const g = leerAlin(key);
+            if (g) {
+                alin.disp = new Set((g.disp || []).filter((i) => i < N));
+                alin.top = new Set((g.top || []).filter((i) => i < N));
+                alin.pts = g.pts || {};
+            } else {
+                const orden = t.players.map((p, i) => i).sort((a, b) => t.players[b].pts - t.players[a].pts);
+                alin.disp = new Set(orden.slice(0, MAX_DISP));
+                alin.top = new Set();
+                alin.pts = {};
+            }
+            alinElegirRival(rivalPorDefecto(key));
+        }
+
+        function alinElegirRival(rk) {
+            alin.rivalKey = rk || '';
+            alin.res = null;
+            const n = alin.key ? nParejas(PL.teams[alin.key]) : 5;
+            alin.rivalSlots = Array.from({ length: n }, () => [-1, -1]);
+            const r = rk ? PL.teams[rk] : null;
+            if (r && r.last) {
+                const ps = [...r.last.pairs].sort((a, b) => a.n - b.n);
+                ps.slice(0, n).forEach((p, s) => { alin.rivalSlots[s] = [p.j[0] != null ? p.j[0] : -1, p.j[1] != null ? p.j[1] : -1]; });
+            }
+        }
+
+        // Pareja rival completa y ordenada por suma de puntos
+        function rivalOrdenado() {
+            const r = alin.rivalKey ? PL.teams[alin.rivalKey] : null;
+            if (!r) return null;
+            const lista = [];
+            for (const [a, b] of alin.rivalSlots) {
+                if (a < 0 || b < 0 || a === b) return null;
+                lista.push({ j: [a, b], suma: r.players[a].pts + r.players[b].pts });
+            }
+            const todos = lista.flatMap((p) => p.j);
+            if (new Set(todos).size !== todos.length) return null; // un jugador repetido
+            return lista.sort((x, y) => y.suma - x.suma);
+        }
+
+        // Prueba todas las formas de formar n parejas con los jugadores disponibles y se queda con las mejores
+        function calcularAlineaciones() {
+            const t = PL.teams[alin.key];
+            const n = nParejas(t);
+            const idx = [...alin.disp].sort((a, b) => ptsDe(t, b) - ptsDe(t, a));
+            const N = idx.length;
+            if (N < 2 * n) return { error: `Marca al menos ${2 * n} jugadores disponibles (ahora ${N}).` };
+            if (N > MAX_DISP) return { error: `Demasiados jugadores disponibles (${N}). Deja como máximo ${MAX_DISP}.` };
+            const rival = alin.modo === 'rival' ? rivalOrdenado() : null;
+            if (alin.modo === 'rival' && !rival) {
+                return { error: 'Para comparar con un rival elige su equipo y completa todas sus parejas (o cambia el modo de cálculo).' };
+            }
+            const pts = idx.map((i) => ptsDe(t, i));
+            const top = idx.map((i) => alin.top.has(i));
+            const hayTop = top.some(Boolean);
+            const suma = new Float64Array(N * N), syn = new Float64Array(N * N);
+            for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+                suma[a * N + b] = pts[a] + pts[b];
+                const e = t.pairs[parKey(idx[a], idx[b])];
+                syn[a * N + b] = e ? (e[1] + 1) / (e[0] + 2) : 0.5; // porcentaje de victorias suavizado
+            }
+            const K = 5;
+            const mejores = [];
+            const used = new Uint8Array(N), pa = new Int8Array(n), pb = new Int8Array(n);
+            const s = new Float64Array(n), ord = new Int8Array(n);
+
+            function hoja() {
+                for (let k = 0; k < n; k++) { s[k] = suma[pa[k] * N + pb[k]]; ord[k] = k; }
+                for (let x = 1; x < n; x++) { // orden por suma descendente
+                    const v = ord[x]; let y = x - 1;
+                    while (y >= 0 && s[ord[y]] < s[v]) { ord[y + 1] = ord[y]; y--; }
+                    ord[y + 1] = v;
+                }
+                if (hayTop) { // los jugadores Top FIP, en las primeras parejas
+                    let visto = false;
+                    for (let x = 0; x < n; x++) {
+                        const k = ord[x];
+                        const es = top[pa[k]] || top[pb[k]];
+                        if (!es) visto = true; else if (visto) return;
+                    }
+                }
+                let sy = 0, total = 0;
+                for (let k = 0; k < n; k++) { sy += syn[pa[k] * N + pb[k]]; total += s[k]; }
+                let score, wins = 0, esp = 0;
+                if (rival) {
+                    for (let x = 0; x < n; x++) {
+                        const a = s[ord[x]], b = rival[x].suma;
+                        if (a > b) wins++;
+                        esp += 1 / (1 + Math.exp(-(a - b) * 16.67 / Math.max(1, a + b)));
+                    }
+                    score = wins * 1e8 + Math.round(esp * 1000) * 1e4 + Math.round(sy * 1000);
+                } else if (alin.modo === 'fuerza') {
+                    score = total * 1e8 + Math.round(sy * 1000) * 1e4;
+                } else {
+                    score = (1e5 - (s[ord[0]] - s[ord[n - 1]])) * 1e8 + Math.round(sy * 1000) * 1e4;
+                }
+                if (mejores.length === K && score <= mejores[K - 1].score) return;
+                const pares = [];
+                for (let x = 0; x < n; x++) pares.push([idx[pa[ord[x]]], idx[pb[ord[x]]]]);
+                mejores.push({ score, pares, total, wins, esp, sy });
+                mejores.sort((p, q) => q.score - p.score);
+                if (mejores.length > K) mejores.pop();
+            }
+
+            function rec(d, libres) {
+                if (d === n) { hoja(); return; }
+                if (libres < 2 * (n - d)) return;
+                let a = 0;
+                while (a < N && used[a]) a++;
+                if (a >= N) return;
+                used[a] = 1;
+                if (libres - 1 >= 2 * (n - d)) rec(d, libres - 1); // este jugador no juega
+                for (let b = a + 1; b < N; b++) if (!used[b]) {
+                    used[b] = 1; pa[d] = a; pb[d] = b;
+                    rec(d + 1, libres - 2);
+                    used[b] = 0;
+                }
+                used[a] = 0;
+            }
+            rec(0, N);
+            if (!mejores.length) return { error: 'Ninguna combinación cumple las condiciones (revisa los jugadores marcados como Top FIP).' };
+            return { opciones: mejores, rival, n };
+        }
+
+        function alinCalcular() {
+            if (!alin.key) return;
+            $('alinResultados').innerHTML = '<p class="text-sm text-slate-500 py-6 text-center">Calculando combinaciones...</p>';
+            setTimeout(() => {
+                const r = calcularAlineaciones();
+                alin.msg = r.error || '';
+                alin.res = r.error ? null : r;
+                pintarAlin();
+                const el = $('alinResultados');
+                if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 30);
+        }
+
+        function historialPar(t, i, j) {
+            const e = t.pairs[parKey(i, j)];
+            if (!e || !e[0]) return '<span class="text-slate-400">Sin partidos juntos</span>';
+            const up = e[3] ? ` · <span class="text-emerald-700 font-semibold">${e[2]}/${e[3]} contra parejas con más puntos</span>` : '';
+            return `${e[0]} PJ · ${e[1]} PG${up}`;
+        }
+
+        function opcionHtml(t, o, k, rival) {
+            const filas = o.pares.map((p, x) => {
+                const a = ptsDe(t, p[0]), b = ptsDe(t, p[1]);
+                const sm = a + b;
+                let vs = '';
+                if (rival) {
+                    const r = alin.rivalKey ? PL.teams[alin.rivalKey] : null;
+                    const rp = rival[x];
+                    const d = sm - rp.suma;
+                    const col = d > 0 ? 'text-emerald-700' : d < 0 ? 'text-red-600' : 'text-slate-500';
+                    vs = `<div class="text-right whitespace-nowrap"><span class="text-xs text-slate-400">rival ${rp.suma}</span>
+                          <span class="font-bold ${col} ml-1">${d > 0 ? '+' : ''}${d}</span></div>`;
+                    vs += `<div class="basis-full text-[11px] text-slate-400 pl-9">vs ${esc(nomJ(r.players[rp.j[0]]))} y ${esc(nomJ(r.players[rp.j[1]]))}</div>`;
+                }
+                const sig = o.pares[x + 1] ? ptsDe(t, o.pares[x + 1][0]) + ptsDe(t, o.pares[x + 1][1]) : null;
+                const empate = sig !== null && sig === sm
+                    ? '<span class="text-[11px] text-amber-600 ml-2">misma suma que la siguiente: orden indistinto</span>' : '';
+                return `
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 border-b border-slate-100 last:border-0">
+                    <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0">${x + 1}</span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold text-slate-900">${esc(nomJ(t.players[p[0]]))} <span class="text-slate-400 font-normal">${a}</span>
+                            <span class="text-slate-400 mx-1">+</span> ${esc(nomJ(t.players[p[1]]))} <span class="text-slate-400 font-normal">${b}</span>${empate}</p>
+                        <p class="text-[11px] text-slate-500">${historialPar(t, p[0], p[1])}</p>
+                    </div>
+                    <div class="text-right"><span class="text-base font-black text-slate-900">${sm}</span><span class="text-[11px] text-slate-400"> pts</span></div>
+                    ${vs}
+                </div>`;
+            }).join('');
+            const badges = [`<span class="text-xs bg-slate-100 border border-slate-200 text-slate-700 px-2 py-0.5 rounded-md">Suma total ${o.total}</span>`];
+            if (rival) badges.push(`<span class="text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded-md font-semibold">Superas al rival en ${o.wins} de ${o.pares.length} parejas · ${o.esp.toFixed(1)} victorias esperadas</span>`);
+            return `
+            <div class="border ${k === 0 ? 'border-emerald-400' : 'border-slate-200'} rounded-xl p-4 ${k === 0 ? 'bg-emerald-50/40' : 'bg-white'}">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <span class="text-sm font-bold text-slate-900">${k === 0 ? 'Mejor opción' : 'Opción ' + (k + 1)}</span>${badges.join('')}
+                </div>
+                ${filas}
+            </div>`;
+        }
+
+        function companeroHtml(t) {
+            const c = alin.companero;
+            const opts = t.players.map((p, i) =>
+                `<option value="${i}" ${i === c ? 'selected' : ''}>${esc(nomJ(p))} (${ptsDe(t, i)})</option>`).join('');
+            let cuerpo = '<p class="text-sm text-slate-500 py-4">Elige un jugador para ver con quién rinde mejor.</p>';
+            if (c != null && t.players[c]) {
+                const filas = t.players.map((p, j) => {
+                    if (j === c) return null;
+                    const e = t.pairs[parKey(c, j)] || [0, 0, 0, 0];
+                    return { j, pj: e[0], g: e[1], up: e[2], opp: e[3], idxv: e[1] + 0.5 * e[2],
+                             pct: e[0] ? e[1] / e[0] : 0, disp: alin.disp.has(j), suma: ptsDe(t, c) + ptsDe(t, j) };
+                }).filter(Boolean).sort((a, b) => b.idxv - a.idxv || b.pct - a.pct || b.pj - a.pj || b.suma - a.suma);
+                const ideal = filas.find((f) => f.pj > 0 && f.disp && f.g > 0);
+                const tr = filas.map((f) => `
+                    <tr class="${f === ideal ? 'bg-emerald-50' : 'hover:bg-slate-50'} ${f.disp ? '' : 'opacity-50'} transition">
+                        <td class="p-3 font-medium text-slate-900">${esc(nomJ(t.players[f.j]))}
+                            ${f === ideal ? '<span class="ml-2 text-[11px] font-bold text-emerald-700 bg-white border border-emerald-300 px-1.5 py-0.5 rounded">Compañero ideal</span>' : ''}
+                            ${f.disp ? '' : '<span class="ml-2 text-[11px] text-slate-400">no disponible</span>'}</td>
+                        <td class="p-3 text-center text-slate-600">${ptsDe(t, f.j)}</td>
+                        <td class="p-3 text-center font-semibold text-slate-900">${f.suma}</td>
+                        <td class="p-3 text-center text-slate-600">${f.pj || '-'}</td>
+                        <td class="p-3 text-center font-bold text-emerald-600">${f.pj ? f.g : '-'}</td>
+                        <td class="p-3 text-center text-slate-600">${f.pj ? Math.round(f.pct * 100) + '%' : '-'}</td>
+                        <td class="p-3 text-center text-slate-600">${f.opp ? `<span class="font-bold text-emerald-700">${f.up}</span> de ${f.opp}` : '-'}</td>
+                    </tr>`).join('');
+                cuerpo = `
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead><tr class="bg-slate-100 text-xs text-slate-500 border-b border-slate-200">
+                            <th class="p-3">Compañero</th><th class="p-3 text-center">Puntos</th><th class="p-3 text-center">Suma pareja</th>
+                            <th class="p-3 text-center">PJ juntos</th><th class="p-3 text-center">PG</th><th class="p-3 text-center">% vict.</th>
+                            <th class="p-3 text-center" title="Victorias contra parejas con más puntos / partidos jugados contra parejas con más puntos">Vict. poco probables</th>
+                        </tr></thead>
+                        <tbody class="divide-y divide-slate-200">${tr}</tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">Se ordena por victorias juntos, contando las «poco probables» (contra una pareja con más puntos) un 50% más. «Poco probables» usa los puntos actuales de todos los jugadores. Solo cuenta la liga en curso.</p>`;
+            }
+            return `
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2 mb-3">
+                    <i class="fa-solid fa-handshake text-emerald-600"></i> Compañero ideal
+                </h3>
+                <select onchange="alinCompanero(this.value)" class="w-full sm:w-80 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 mb-4">
+                    <option value="">Elige un jugador...</option>${opts}
+                </select>
+                ${cuerpo}
+            </div>`;
+        }
+
+        function pintarAlin() {
+            const cont = $('alinContent');
+            const porKey = new Map(DATA.teams.map((t) => [keyOf(t), t]));
+            let claves = equiposFiltrados().map(keyOf).filter((k) => PL.teams[k]);
+            if (alin.key && !claves.includes(alin.key)) claves.push(alin.key);
+            const grupos = {};
+            claves.forEach((k) => {
+                const dt = porKey.get(k);
+                (grupos[dt ? dt.category : ''] = grupos[dt ? dt.category : ''] || []).push([k, PL.teams[k].name]);
+            });
+            const selEquipo = `
+                <select onchange="alinCambiarEquipo(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-500">
+                    <option value="">Elige tu equipo...</option>
+                    ${Object.keys(grupos).sort().map((g) => `<optgroup label="${esc(g)}">${grupos[g].sort((a, b) => a[1].localeCompare(b[1])).map(([k, nm]) =>
+                        `<option value="${esc(k)}" ${k === alin.key ? 'selected' : ''}>${esc(nm)}</option>`).join('')}</optgroup>`).join('')}
+                </select>`;
+            if (!alin.key || !PL.teams[alin.key]) {
+                cont.innerHTML = `<div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <p class="text-sm text-slate-600 mb-3">Elige tu equipo (puedes filtrar por categoría o buscar arriba).</p>${selEquipo}</div>`;
+                return;
+            }
+            const t = PL.teams[alin.key];
+            const n = nParejas(t);
+            if (!t.players.length) {
+                cont.innerHTML = `<div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"><div class="mb-4">${selEquipo}</div>
+                    <p class="text-sm text-slate-500">Este equipo todavía no tiene plantilla publicada.</p></div>`;
+                return;
+            }
+            const filasJ = t.players.map((p, i) => {
+                const d = alin.disp.has(i);
+                const editado = alin.pts[i] && alin.pts[i][0] === p.pts && alin.pts[i][1] !== p.pts;
+                return `
+                <tr class="${d ? '' : 'opacity-60'}">
+                    <td class="p-2 text-center"><input type="checkbox" ${d ? 'checked' : ''} onchange="alinDisp(${i}, this.checked)" class="w-4 h-4 accent-emerald-600"></td>
+                    <td class="p-2 font-medium text-slate-900">${esc(nomJ(p))}${p.a2 ? ' <span class="text-slate-400 font-normal">' + esc(titulo(p.a2)) + '</span>' : ''}</td>
+                    <td class="p-2"><input type="number" min="0" step="1" value="${ptsDe(t, i)}" onchange="alinPts(${i}, this.value)"
+                        class="w-20 bg-slate-50 border ${editado ? 'border-amber-400' : 'border-slate-300'} rounded-lg px-2 py-1 text-sm text-slate-900 focus:outline-none focus:border-emerald-500"></td>
+                    <td class="p-2 text-center"><input type="checkbox" ${alin.top.has(i) ? 'checked' : ''} onchange="alinTop(${i}, this.checked)" class="w-4 h-4 accent-emerald-600"></td>
+                </tr>`;
+            }).join('');
+            const rk = alin.rivalKey, r = rk ? PL.teams[rk] : null;
+            const cat = alin.key.split(':')[0];
+            const rivales = Object.keys(PL.teams).filter((k) => k.split(':')[0] === cat && k !== alin.key)
+                .sort((a, b) => PL.teams[a].name.localeCompare(PL.teams[b].name));
+            const optsRiv = (sel) => '<option value="-1">—</option>' + (r ? r.players.map((p, i) =>
+                `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(nomJ(p))} (${p.pts})</option>`).join('') : '');
+            const slots = r ? alin.rivalSlots.map((sl, s) => `
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="w-5 text-xs text-slate-400">${s + 1}</span>
+                    <select onchange="alinSlot(${s}, 0, this.value)" class="flex-1 min-w-0 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs">${optsRiv(sl[0])}</select>
+                    <select onchange="alinSlot(${s}, 1, this.value)" class="flex-1 min-w-0 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs">${optsRiv(sl[1])}</select>
+                    <span class="w-14 text-right text-xs font-bold text-slate-700">${sl[0] >= 0 && sl[1] >= 0 ? r.players[sl[0]].pts + r.players[sl[1]].pts : ''}</span>
+                </div>`).join('') : '<p class="text-xs text-slate-400">Elige el equipo rival para compararte con su alineación.</p>';
+            const nDisp = alin.disp.size;
+            const aviso = nDisp > MAX_DISP ? `<span class="text-red-600 font-semibold">máximo ${MAX_DISP}</span>` : nDisp < 2 * n ? `<span class="text-amber-600">mínimo ${2 * n}</span>` : '';
+            const ultima = r && r.last ? `Alineación de su último enfrentamiento (${esc(r.last.date || '')} vs ${esc(r.last.rival)}). Puedes cambiarla.` : (r ? 'Este equipo aún no ha jugado: elige sus parejas a mano.' : '');
+            const resultados = alin.res
+                ? `<div class="space-y-3">${alin.res.opciones.map((o, k) => opcionHtml(t, o, k, alin.res.rival)).join('')}</div>
+                   <p class="text-xs text-slate-400 mt-3">Las parejas van ordenadas por suma de puntos, como exige la normativa. «Victorias esperadas» es una estimación orientativa según la diferencia de puntos; no es una predicción.</p>`
+                : (alin.msg ? `<p class="text-sm text-red-600 py-3">${esc(alin.msg)}</p>` : '<p class="text-sm text-slate-500 py-3">Pulsa «Calcular» para ver las mejores combinaciones.</p>');
+            cont.innerHTML = `
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div class="mb-4">${selEquipo}</div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Tu plantilla · ${nDisp} disponibles ${aviso}</h4>
+                            <span class="text-[11px] text-slate-400">${t.fetchedAt ? 'Puntos del ' + esc(new Date(t.fetchedAt).toLocaleDateString('es-ES')) : ''}</span>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl border border-slate-200 max-h-96 overflow-y-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead class="sticky top-0"><tr class="bg-slate-100 text-xs text-slate-500 border-b border-slate-200">
+                                    <th class="p-2 text-center">Disp.</th><th class="p-2">Jugador</th><th class="p-2">Puntos</th>
+                                    <th class="p-2 text-center" title="Entre los 100 primeros del ranking FIP (masculino) o 70 (femenino) a 1/9/2026">Top FIP</th>
+                                </tr></thead>
+                                <tbody class="divide-y divide-slate-100">${filasJ}</tbody>
+                            </table>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1">Puedes corregir los puntos a mano (se marcan en naranja).</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Rival</h4>
+                        <select onchange="alinRival(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 mb-2">
+                            <option value="">Sin rival</option>
+                            ${rivales.map((k) => `<option value="${esc(k)}" ${k === rk ? 'selected' : ''}>${esc(PL.teams[k].name)}</option>`).join('')}
+                        </select>
+                        <p class="text-[11px] text-slate-400 mb-2">${ultima}</p>
+                        ${slots}
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 mt-5 pt-5 border-t border-slate-200">
+                    <select onchange="alinModo(this.value)" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-500">
+                        ${Object.keys(MODOS).map((m) => `<option value="${m}" ${m === alin.modo ? 'selected' : ''}>${MODOS[m]}</option>`).join('')}
+                    </select>
+                    <button onclick="alinCalcular()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-sm"><i class="fa-solid fa-calculator mr-1.5"></i>Calcular</button>
+                </div>
+            </div>
+            <div id="alinResultados" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mt-6">
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2 mb-3"><i class="fa-solid fa-ranking-star text-emerald-600"></i> Mejores combinaciones</h3>
+                ${resultados}
+            </div>
+            <div class="mt-6">${companeroHtml(t)}</div>`;
+        }
+
+        function alinCambiarEquipo(k) { if (k) { alinElegir(k); } else { alin.key = null; } pintarAlin(); }
+        function alinDisp(i, v) { v ? alin.disp.add(i) : alin.disp.delete(i); alin.res = null; alin.msg = ''; guardarAlin(); pintarAlin(); }
+        function alinTop(i, v) { v ? alin.top.add(i) : alin.top.delete(i); alin.res = null; alin.msg = ''; guardarAlin(); pintarAlin(); }
+        function alinPts(i, v) {
+            const base = PL.teams[alin.key].players[i].pts;
+            const x = Math.max(0, parseInt(v, 10));
+            if (isNaN(x) || x === base) delete alin.pts[i]; else alin.pts[i] = [base, x];
+            alin.res = null; alin.msg = ''; guardarAlin(); pintarAlin();
+        }
+        function alinRival(k) { alinElegirRival(k); pintarAlin(); }
+        function alinSlot(s, lado, v) { alin.rivalSlots[s][lado] = parseInt(v, 10); alin.res = null; alin.msg = ''; pintarAlin(); }
+        function alinModo(m) { alin.modo = m; alin.res = null; alin.msg = ''; pintarAlin(); }
+        function alinCompanero(v) { alin.companero = v === '' ? null : parseInt(v, 10); pintarAlin(); }
+
+        async function renderAlineaciones() {
+            const cont = $('alinContent');
+            cont.innerHTML = '<p class="text-sm text-slate-500 py-6 text-center">Cargando plantillas...</p>';
+            try {
+                await cargarPlantillas();
+            } catch (e) {
+                cont.innerHTML = '<div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"><p class="text-sm text-red-600">Todavía no hay datos de plantillas (' + esc(e.message) + '). Se generan en la próxima actualización automática.</p></div>';
+                return;
+            }
+            if (vista !== 'alineaciones') return;
+            if (alinPedido && PL.teams[alinPedido]) { alinElegir(alinPedido); }
+            else if (!alin.key && selectedKey && PL.teams[selectedKey]) { alinElegir(selectedKey); }
+            alinPedido = null;
+            pintarAlin();
+        }
+
+        function abrirAlineaciones() {
+            alinPedido = selectedKey;
+            setVista('alineaciones');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         function refrescarVista() {
             if (vista === 'jornadas') renderJornadas();
             if (vista === 'jugadores') renderJugadores();
+            if (vista === 'alineaciones' && PL) pintarAlin();
         }
 
         function irAlInicio() {
