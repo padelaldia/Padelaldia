@@ -7,21 +7,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
+<body class="bg-white text-slate-900 min-h-screen font-sans antialiased">
     <!-- Header -->
-    <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-3">
-                <div class="bg-emerald-500 text-slate-950 p-2.5 rounded-xl font-black text-xl tracking-wider shadow-lg shadow-emerald-500/20">
+                <div class="bg-emerald-500 text-white p-2.5 rounded-xl font-black text-xl tracking-wider shadow-lg shadow-emerald-500/20">
                     <i class="fa-solid fa-table-tennis-paddle-ball"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight text-white">Padelaldia</h1>
-                    <p class="text-xs text-slate-400">Liga Cántabra de Pádel • Calendarios y Estadísticas</p>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900">Padelaldia</h1>
+                    <p class="text-xs text-slate-500">Liga Cántabra de Pádel • Calendarios y Estadísticas</p>
                 </div>
             </div>
-            <div class="text-xs text-slate-400 flex items-center gap-2">
-                <i class="fa-regular fa-clock text-emerald-400"></i>
+            <div class="text-xs text-slate-500 flex items-center gap-2">
+                <i class="fa-regular fa-clock text-emerald-600"></i>
                 <span id="updatedAt">Cargando datos...</span>
             </div>
         </div>
@@ -29,18 +29,18 @@
 
     <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <!-- Filtros -->
-        <div class="bg-slate-950/80 backdrop-blur border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div class="md:col-span-2 relative">
                     <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar equipo o club (ej. Mioño, Liencres, Troyanos...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                    <input type="text" id="searchInput" placeholder="Buscar equipo o club (ej. Mioño, Liencres, Troyanos...)" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
                 </div>
-                <select id="generoFilter" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                <select id="generoFilter" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 transition">
                     <option value="all">Masculino y femenino</option>
                     <option value="M">Masculino</option>
                     <option value="F">Femenino</option>
                 </select>
-                <select id="categoryFilter" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                <select id="categoryFilter" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 transition">
                     <option value="all">Todas las categorías</option>
                 </select>
             </div>
@@ -49,69 +49,77 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Ficha del equipo -->
             <div class="lg:col-span-2 space-y-6 order-2 lg:order-1">
-                <div id="teamCard" class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
+                <div id="teamCard" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden hidden">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                         <div>
-                            <span id="teamCategoryBadge" class="text-xs uppercase tracking-wider font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20"></span>
-                            <h2 id="teamNameTitle" class="text-2xl font-black text-white mt-2"></h2>
+                            <span id="teamCategoryBadge" class="text-xs uppercase tracking-wider font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200"></span>
+                            <h2 id="teamNameTitle" class="text-2xl font-black text-slate-900 mt-2"></h2>
                         </div>
-                        <button onclick="copiarAvisoWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
-                            <i class="fa-brands fa-whatsapp text-emerald-400 text-sm"></i> Copiar aviso WhatsApp
+                        <button onclick="copiarAvisoWhatsApp()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i> Copiar aviso WhatsApp
                         </button>
                     </div>
 
-                    <!-- Resumen -->
+                    <!-- Resumen de clasificación -->
                     <div id="teamStats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"></div>
 
+                    <!-- Últimos 5 partidos del equipo -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-line text-emerald-600"></i> Estadísticas de los últimos 5 partidos
+                        </h3>
+                        <div id="last5Stats"></div>
+                    </div>
+
                     <!-- Próximo partido -->
-                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 mb-6">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
                         <div class="flex items-center justify-between mb-3">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                <i class="fa-regular fa-calendar-days text-emerald-400"></i> Próximo enfrentamiento
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-days text-emerald-600"></i> Próximo enfrentamiento
                             </span>
-                            <span id="nextMatchDate" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md">--</span>
+                            <span id="nextMatchDate" class="text-xs bg-white border border-slate-200 text-slate-700 px-2.5 py-1 rounded-md">--</span>
                         </div>
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div>
-                                <p id="nextMatchWhere" class="text-xs text-slate-400"></p>
-                                <p id="nextMatchRival" class="text-lg font-bold text-white mt-0.5">--</p>
-                                <p id="nextMatchSede" class="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                                    <i class="fa-solid fa-location-dot text-emerald-400"></i> <span>--</span>
+                                <p id="nextMatchWhere" class="text-xs text-slate-500"></p>
+                                <p id="nextMatchRival" class="text-lg font-bold text-slate-900 mt-0.5">--</p>
+                                <p id="nextMatchSede" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-location-dot text-emerald-600"></i> <span>--</span>
                                 </p>
                             </div>
-                            <a id="mapLink" href="#" target="_blank" rel="noopener" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition items-center gap-2 shadow-md w-full sm:w-auto justify-center">
+                            <a id="mapLink" href="#" target="_blank" rel="noopener" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition items-center gap-2 shadow-sm w-full sm:w-auto justify-center">
                                 <i class="fa-solid fa-diamond-turn-right"></i> Cómo llegar (Maps)
                             </a>
                         </div>
+                        <div id="rivalForm" class="mt-4 pt-4 border-t border-slate-200"></div>
                     </div>
 
                     <!-- Calendario y resultados -->
-                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> Calendario y resultados
+                    <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> Calendario y resultados
                     </h3>
-                    <div class="overflow-x-auto rounded-xl border border-slate-800 mb-6">
+                    <div class="overflow-x-auto rounded-xl border border-slate-200 mb-6">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="bg-slate-900 text-xs text-slate-400 border-b border-slate-800">
+                                <tr class="bg-slate-100 text-xs text-slate-500 border-b border-slate-200">
                                     <th class="p-3">Jor.</th>
                                     <th class="p-3">Fecha</th>
                                     <th class="p-3">Rival</th>
                                     <th class="p-3 text-center">Resultado</th>
                                 </tr>
                             </thead>
-                            <tbody id="matchHistoryBody" class="divide-y divide-slate-800 text-sm"></tbody>
+                            <tbody id="matchHistoryBody" class="divide-y divide-slate-200 text-sm"></tbody>
                         </table>
                     </div>
 
                     <!-- Clasificación del grupo -->
-                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-ranking-star text-emerald-400"></i> Clasificación del grupo
+                    <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-ranking-star text-emerald-600"></i> Clasificación del grupo
                     </h3>
-                    <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="bg-slate-900 text-xs text-slate-400 border-b border-slate-800">
+                                <tr class="bg-slate-100 text-xs text-slate-500 border-b border-slate-200">
                                     <th class="p-3">#</th>
                                     <th class="p-3">Equipo</th>
                                     <th class="p-3 text-center">Enf.</th>
@@ -121,28 +129,28 @@
                                     <th class="p-3 text-center">Av. juegos</th>
                                 </tr>
                             </thead>
-                            <tbody id="standingsBody" class="divide-y divide-slate-800 text-sm"></tbody>
+                            <tbody id="standingsBody" class="divide-y divide-slate-200 text-sm"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <div id="emptyState" class="bg-slate-950 border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
-                    <div class="w-16 h-16 bg-slate-900 border border-slate-800 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                <div id="emptyState" class="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center">
+                    <div class="w-16 h-16 bg-white border border-slate-200 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </div>
-                    <h3 class="text-lg font-bold text-white">Busca tu equipo en la Liga Cántabra</h3>
-                    <p class="text-sm text-slate-400 max-w-md mx-auto mt-1">Escribe el nombre de tu club arriba o selecciona un equipo del listado para consultar su calendario, resultados y clasificación.</p>
+                    <h3 class="text-lg font-bold text-slate-900">Busca tu equipo en la Liga Cántabra</h3>
+                    <p class="text-sm text-slate-500 max-w-md mx-auto mt-1">Escribe el nombre de tu club arriba o selecciona un equipo del listado para consultar su calendario, resultados y clasificación.</p>
                 </div>
             </div>
 
             <!-- Listado de equipos -->
             <div class="space-y-4 order-1 lg:order-2">
-                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                     <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-shield-halved text-emerald-400"></i> Equipos
+                        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-emerald-600"></i> Equipos
                         </h3>
-                        <span id="teamsCountBadge" class="text-xs bg-slate-900 text-slate-400 px-2 py-0.5 rounded-full border border-slate-800">0</span>
+                        <span id="teamsCountBadge" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">0</span>
                     </div>
                     <div id="teamsList" class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                         <p class="text-xs text-slate-500 text-center py-6">Cargando equipos de la FCP...</p>
@@ -152,7 +160,7 @@
         </div>
     </main>
 
-    <footer class="max-w-7xl mx-auto px-4 py-8 text-center text-xs text-slate-500 border-t border-slate-800/60 mt-12">
+    <footer class="max-w-7xl mx-auto px-4 py-8 text-center text-xs text-slate-500 border-t border-slate-200 mt-12">
         <p>Padelaldia • Datos de la Federación Cántabra de Pádel (FCP), actualizados automáticamente</p>
     </footer>
 
@@ -185,7 +193,7 @@
                 console.error(e);
                 $('updatedAt').textContent = 'No se pudieron cargar los datos';
                 $('teamsList').innerHTML =
-                    '<p class="text-xs text-red-400 text-center py-6">No se pudieron cargar los datos (' + esc(e.message) + ').</p>';
+                    '<p class="text-xs text-red-600 text-center py-6">No se pudieron cargar los datos (' + esc(e.message) + ').</p>';
             }
         }
 
@@ -226,12 +234,12 @@
                 return;
             }
             $('teamsList').innerHTML = teams.map((t) => `
-                <div onclick="seleccionarEquipo('${esc(keyOf(t))}')" class="bg-slate-900 hover:bg-slate-800 border ${keyOf(t) === selectedKey ? 'border-emerald-500/60' : 'border-slate-800'} hover:border-emerald-500/50 p-3 rounded-xl cursor-pointer transition flex items-center justify-between group">
+                <div onclick="seleccionarEquipo('${esc(keyOf(t))}')" class="bg-white hover:bg-emerald-50 border ${keyOf(t) === selectedKey ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'} hover:border-emerald-400 p-3 rounded-xl cursor-pointer transition flex items-center justify-between group">
                     <div class="min-w-0">
-                        <p class="text-sm font-bold text-white group-hover:text-emerald-400 transition truncate">${esc(t.name)}</p>
-                        <p class="text-xs text-slate-400 mt-0.5 truncate">${esc(t.category)} · ${esc(t.position)}º</p>
+                        <p class="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition truncate">${esc(t.name)}</p>
+                        <p class="text-xs text-slate-500 mt-0.5 truncate">${esc(t.category)} · ${esc(t.position)}º</p>
                     </div>
-                    <i class="fa-solid fa-chevron-right text-xs text-slate-600 group-hover:text-emerald-400 transition ml-2"></i>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-emerald-600 transition ml-2"></i>
                 </div>`).join('');
         }
 
@@ -240,10 +248,79 @@
             return pendientes.find((m) => m.estado === 'confecha') || pendientes[0] || null;
         }
 
+        // Últimos n partidos ya jugados (con resultado), del más antiguo al más reciente
+        function ultimosJugados(team, n = 5) {
+            return team.matches
+                .filter((m) => m.for != null)
+                .sort((a, b) => a.partido - b.partido)
+                .slice(-n);
+        }
+
+        function ficha(m) {
+            const gana = m.for > m.against;
+            const cls = gana
+                ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                : 'bg-red-100 text-red-700 border-red-300';
+            return `<span title="${esc((m.home ? 'vs ' : 'en ') + m.rival + ' ' + m.for + '-' + m.against)}"
+                class="inline-flex flex-col items-center justify-center w-11 h-11 rounded-lg border ${cls} font-bold leading-tight">
+                <span class="text-sm">${gana ? 'V' : 'D'}</span>
+                <span class="text-[10px] font-semibold">${m.for}-${m.against}</span></span>`;
+        }
+
+        function formaHtml(team) {
+            const u = ultimosJugados(team);
+            if (!u.length) return '<p class="text-sm text-slate-500">Todavía no ha jugado ningún enfrentamiento.</p>';
+            return `<div class="flex flex-wrap gap-2">${u.map(ficha).join('')}</div>`;
+        }
+
+        function ultimos5Html(team) {
+            const u = ultimosJugados(team);
+            if (!u.length) return '<p class="text-sm text-slate-500">Todavía no ha jugado ningún enfrentamiento.</p>';
+            const v = u.filter((m) => m.for > m.against).length;
+            const d = u.length - v;
+            const aFavor = u.reduce((s, m) => s + m.for, 0);
+            const enContra = u.reduce((s, m) => s + m.against, 0);
+            const pct = Math.round((aFavor / (aFavor + enContra)) * 100);
+            const caja = (valor, etiqueta, color = 'text-slate-900') => `
+                <div class="bg-white border border-slate-200 rounded-xl p-3 text-center">
+                    <p class="text-xl font-black ${color}">${valor}</p>
+                    <p class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">${etiqueta}</p>
+                </div>`;
+            const filas = u.slice().reverse().map((m) => `
+                <tr>
+                    <td class="py-1.5 pr-3 text-slate-500">Jor. ${esc(m.jornada)}</td>
+                    <td class="py-1.5 pr-3 text-slate-800">
+                        <span class="text-[10px] uppercase tracking-wider ${m.home ? 'text-emerald-600' : 'text-slate-400'} mr-1">${m.home ? 'Local' : 'Visit.'}</span>${esc(m.rival)}
+                    </td>
+                    <td class="py-1.5 text-right">${resultadoHtml(m)}</td>
+                </tr>`).join('');
+            return `
+                <div class="mb-4">${formaHtml(team)}</div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                    ${caja(v, 'Victorias', 'text-emerald-600')}
+                    ${caja(d, 'Derrotas', 'text-red-600')}
+                    ${caja(aFavor + ' - ' + enContra, 'Partidos a favor / contra')}
+                    ${caja(pct + '%', 'Partidos ganados')}
+                </div>
+                <table class="w-full text-sm"><tbody>${filas}</tbody></table>
+                <p class="text-[11px] text-slate-400 mt-2">Del más antiguo (izquierda) al más reciente (derecha). Cada enfrentamiento se juega a 5 partidos.</p>`;
+        }
+
         function resultadoHtml(m) {
-            if (m.for == null) return '<span class="text-slate-500">—</span>';
-            const color = m.for > m.against ? 'text-emerald-400' : (m.for < m.against ? 'text-red-400' : 'text-slate-300');
+            if (m.for == null) return '<span class="text-slate-400">—</span>';
+            const color = m.for > m.against ? 'text-emerald-600' : (m.for < m.against ? 'text-red-600' : 'text-slate-600');
             return `<span class="font-bold ${color}">${m.for} - ${m.against}</span>`;
+        }
+
+        function rivalHtml(team, next) {
+            const rival = DATA.teams.find((t) => t.categoryId === team.categoryId && t.name === next.rival);
+            if (!rival) return '';
+            return `
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-fire text-orange-500"></i> Racha de ${esc(rival.name)} (últimos 5)
+                    <span class="font-normal normal-case text-slate-400">· ${esc(rival.position)}º en la clasificación</span>
+                </p>
+                ${formaHtml(rival)}`;
         }
 
         function seleccionarEquipo(key, scroll = true) {
@@ -259,9 +336,9 @@
 
             const s = team.stats;
             const caja = (etiqueta, valor) => `
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
-                    <p class="text-xl font-black text-white">${esc(valor)}</p>
-                    <p class="text-[11px] uppercase tracking-wider text-slate-400 mt-0.5">${etiqueta}</p>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                    <p class="text-xl font-black text-slate-900">${esc(valor)}</p>
+                    <p class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">${etiqueta}</p>
                 </div>`;
             $('teamStats').innerHTML =
                 caja('Posición', team.position + 'º') +
@@ -269,13 +346,15 @@
                 caja('Enfrentamientos', s.enfrentamientos) +
                 caja('Partidos ganados', s.partidos_ganados + '/' + s.partidos_disputados);
 
+            $('last5Stats').innerHTML = ultimos5Html(team);
+
             const next = proximoPartido(team);
+            const link = $('mapLink');
             if (next) {
                 $('nextMatchDate').textContent = (next.date || 'Por confirmar') + (next.time ? ' · ' + next.time : '');
                 $('nextMatchWhere').textContent = next.home ? 'Juega en casa contra:' : 'Juega fuera contra:';
                 $('nextMatchRival').textContent = next.rival;
                 $('nextMatchSede').querySelector('span').textContent = next.sede || 'Sede por confirmar';
-                const link = $('mapLink');
                 if (next.sede) {
                     link.href = 'https://www.google.com/maps/search/?api=1&query=' +
                         encodeURIComponent(next.sede + ' Cantabria');
@@ -285,21 +364,23 @@
                     link.classList.add('hidden');
                     link.classList.remove('flex');
                 }
+                $('rivalForm').innerHTML = rivalHtml(team, next);
             } else {
                 $('nextMatchDate').textContent = 'Sin partidos pendientes';
                 $('nextMatchWhere').textContent = '';
                 $('nextMatchRival').textContent = '—';
                 $('nextMatchSede').querySelector('span').textContent = '—';
-                $('mapLink').classList.add('hidden');
-                $('mapLink').classList.remove('flex');
+                link.classList.add('hidden');
+                link.classList.remove('flex');
+                $('rivalForm').innerHTML = '';
             }
 
             $('matchHistoryBody').innerHTML = team.matches.map((m) => `
-                <tr class="hover:bg-slate-900/50 transition">
-                    <td class="p-3 font-semibold text-slate-300">${esc(m.jornada)}</td>
-                    <td class="p-3 text-slate-400">${esc(m.date || 'Por fijar')}${m.time ? ' · ' + esc(m.time) : ''}</td>
-                    <td class="p-3 text-white font-medium">
-                        <span class="text-[10px] uppercase tracking-wider ${m.home ? 'text-emerald-400' : 'text-slate-500'} mr-1">${m.home ? 'Local' : 'Visit.'}</span>${esc(m.rival)}
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 font-semibold text-slate-700">${esc(m.jornada)}</td>
+                    <td class="p-3 text-slate-500">${esc(m.date || 'Por fijar')}${m.time ? ' · ' + esc(m.time) : ''}</td>
+                    <td class="p-3 text-slate-900 font-medium">
+                        <span class="text-[10px] uppercase tracking-wider ${m.home ? 'text-emerald-600' : 'text-slate-400'} mr-1">${m.home ? 'Local' : 'Visit.'}</span>${esc(m.rival)}
                     </td>
                     <td class="p-3 text-center">${resultadoHtml(m)}</td>
                 </tr>`).join('');
@@ -308,14 +389,14 @@
                 .filter((t) => t.categoryId === team.categoryId)
                 .sort((a, b) => a.position - b.position);
             $('standingsBody').innerHTML = grupo.map((t) => `
-                <tr onclick="seleccionarEquipo('${esc(keyOf(t))}', false)" class="cursor-pointer hover:bg-slate-900/50 transition ${t.id === team.id ? 'bg-emerald-500/10' : ''}">
-                    <td class="p-3 font-semibold text-slate-300">${esc(t.position)}</td>
-                    <td class="p-3 text-white font-medium">${esc(t.name)}</td>
-                    <td class="p-3 text-center text-slate-300">${esc(t.stats.enfrentamientos)}</td>
-                    <td class="p-3 text-center font-bold text-emerald-400">${esc(t.stats.puntos)}</td>
-                    <td class="p-3 text-center text-slate-300">${esc(t.stats.partidos_ganados)}</td>
-                    <td class="p-3 text-center text-slate-400">${esc(t.stats.average_sets)}</td>
-                    <td class="p-3 text-center text-slate-400">${esc(t.stats.average_juegos)}</td>
+                <tr onclick="seleccionarEquipo('${esc(keyOf(t))}', false)" class="cursor-pointer hover:bg-slate-50 transition ${t.id === team.id ? 'bg-emerald-50' : ''}">
+                    <td class="p-3 font-semibold text-slate-700">${esc(t.position)}</td>
+                    <td class="p-3 text-slate-900 font-medium">${esc(t.name)}</td>
+                    <td class="p-3 text-center text-slate-600">${esc(t.stats.enfrentamientos)}</td>
+                    <td class="p-3 text-center font-bold text-emerald-600">${esc(t.stats.puntos)}</td>
+                    <td class="p-3 text-center text-slate-600">${esc(t.stats.partidos_ganados)}</td>
+                    <td class="p-3 text-center text-slate-500">${esc(t.stats.average_sets)}</td>
+                    <td class="p-3 text-center text-slate-500">${esc(t.stats.average_juegos)}</td>
                 </tr>`).join('');
 
             aplicarFiltros();
