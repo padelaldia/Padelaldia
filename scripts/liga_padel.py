@@ -19,6 +19,7 @@ import json
 import os
 import re
 import time
+import unicodedata
 
 import requests
 from bs4 import BeautifulSoup
@@ -337,6 +338,165 @@ def construir_jugadores(clasif, detalle):
     return jugadores
 
 
+# ---------- Plantillas con puntos y estadísticas de parejas (para la calculadora) ----------
+
+def parsear_plantilla(html):
+    """Página Liga_DetalleEquipo: jugadores del equipo con su puntuación actual."""
+    soup = BeautifulSoup(html, "html.parser")
+    jugadores = []
+    for tr in soup.select("tr.lineas"):
+        td = [limpiar(x.get_text()) for x in tr.find_all("td")]
+        if len(td) < 6 or not (td[1] or td[3]):
+            continue
+        jugadores.append({"a1": td[1], "a2": td[2], "n": td[3], "cat": td[4], "pts": a_entero(td[5])})
+    return jugadores
+
+
+def sin_tildes(s):
+    s = unicodedata.normalize("NFD", s or "")
+    s = "".join(c for c in s if not unicodedata.combining(c)).upper()
+    return re.sub(r"[^A-Z0-9 ]", " ", s)
+
+
+def palabras(s):
+    return sin_tildes(s).split()
+
+
+def buscar_jugador(nombre, candidatos):
+    """Índice del jugador cuyo nombre encaja con el del acta ('NOMBRE APELLIDO1'), o None.
+
+    candidatos: lista de dicts con 'tok' (set de palabras de apellido1+apellido2+nombre),
+    'nom' (palabras del nombre) y 'ap1' (palabras del primer apellido).
+    """
+    w = palabras(nombre)
+    t = set(w)
+    if not t:
+        return None
+    mejor, mejores = 0, []
+    for i, c in enumerate(candidatos):
+        s = len(t & c["tok"])
+        if s > mejor:
+            mejor, mejores = s, [i]
+        elif s == mejor and s > 0:
+            mejores.append(i)
+    if not mejores or not (mejor == len(t) or mejor >= 2):
+        return None
+    if len(mejores) == 1:
+        return mejores[0]
+    exactos = [i for i in mejores
+               if w[0] in candidatos[i]["nom"] and w[-1] in candidatos[i]["ap1"]]
+    return exactos[0] if len(exactos) == 1 else None
+
+
+def completar_plantillas(liga_id, clasif, ruta, max_edad_horas=12):
+    """Descarga la ficha de cada equipo (con los puntos) salvo si la copia es reciente.
+
+    Los puntos solo cambian una vez por semana, así que no hace falta pedirlos en cada ejecución.
+    """
+    previo = cargar_json(ruta).get("teams", {})
+    ahora = datetime.datetime.now(datetime.timezone.utc)
+    resultado, descargados = {}, 0
+    for c in clasif:
+        key = f"{c['grupo_id']}:{c['id_equipo']}"
+        if key in resultado:
+            continue
+        viejo = previo.get(key)
+        if viejo and viejo.get("players") is not None and viejo.get("fetchedAt"):
+            try:
+                edad = ahora - datetime.datetime.fromisoformat(viejo["fetchedAt"])
+                if edad < datetime.timedelta(hours=max_edad_horas):
+                    resultado[key] = {"players": viejo["players"], "fetchedAt": viejo["fetchedAt"]}
+                    continue
+            except ValueError:
+                pass
+        try:
+            html = descargar({"IdEquipo": c["id_equipo"], "Id": liga_id, "grupo": c["grupo_id"]},
+                             url=BASE + "Liga_DetalleEquipo")
+            jugadores = parsear_plantilla(html)
+        except requests.RequestException as e:
+            print(f"  aviso: no se pudo leer la plantilla de {c['equipo']}: {e}")
+            jugadores = viejo["players"] if viejo else []
+        resultado[key] = {"players": jugadores, "fetchedAt": ahora.isoformat(timespec="seconds")}
+        descargados += 1
+        if descargados % 50 == 0:
+            print(f"  plantillas: {descargados} descargadas")
+    print(f"Plantillas: {descargados} descargadas, {len(resultado) - descargados} reutilizadas")
+    return resultado
+
+
+def construir_plantillas(clasif, detalle, crudo):
+    """Une plantillas, puntos y el historial de cada pareja (ganados, 'victorias poco probables')."""
+    equipos = {(c["grupo_id"], c["equipo"]): c for c in clasif}
+    teams, cand = {}, {}
+    for c in clasif:
+        key = f"{c['grupo_id']}:{c['id_equipo']}"
+        if key in teams:
+            continue
+        jug = crudo.get(key, {}).get("players", [])
+        teams[key] = {"name": c["equipo"], "categoryId": c["grupo_id"], "genero": c["genero"],
+                      "fetchedAt": crudo.get(key, {}).get("fetchedAt", ""),
+                      "players": jug, "pairs": {}, "last": None}
+        cand[key] = [{"tok": set(palabras(f"{j['a1']} {j['a2']} {j['n']}")),
+                      "nom": set(palabras(j["n"])), "ap1": set(palabras(j["a1"]))} for j in jug]
+    # Búsqueda en toda la liga, para jugadores que juegan con un equipo que no es el suyo (filiales)
+    todos = [(k, i) for k in cand for i in range(len(cand[k]))]
+    todos_c = [cand[k][i] for k, i in todos]
+    memo = {}
+
+    def resolver(nombre, key):
+        """-> (key_del_equipo, indice) o None"""
+        i = buscar_jugador(nombre, cand.get(key, []))
+        if i is not None:
+            return key, i
+        if nombre not in memo:
+            g = buscar_jugador(nombre, todos_c)
+            memo[nombre] = todos[g] if g is not None else None
+        return memo[nombre]
+
+    def puntos(r):
+        return teams[r[0]]["players"][r[1]]["pts"] if r else None
+
+    ordenados = sorted(detalle.values(), key=lambda d: (d.get("fecha_iso") or "", d["partido"]))
+    for d in ordenados:
+        gid = d["grupo_id"]
+        lados = {}
+        for lado in ("local", "visitante"):
+            c = equipos.get((gid, d[lado]))
+            if c:
+                lados[lado] = f"{gid}:{c['id_equipo']}"
+        if len(lados) < 2:
+            continue
+        jugado = [p for p in d["parejas"] if p["sets_local"] + p["sets_visitante"] > 0]
+        if not jugado:
+            continue
+        alineacion = {"local": [], "visitante": []}
+        for par in sorted(jugado, key=lambda p: p["n"]):
+            res = {lado: [resolver(n, lados[lado]) for n in par[lado]] for lado in lados}
+            suma = {}
+            for lado in lados:
+                pts = [puntos(r) for r in res[lado]]
+                suma[lado] = sum(pts) if len(pts) == 2 and None not in pts else None
+            for lado, otro in (("local", "visitante"), ("visitante", "local")):
+                propios = res[lado]
+                alineacion[lado].append({"n": par["n"], "nom": par[lado],
+                                         "j": [r[1] if r and r[0] == lados[lado] else -1 for r in propios]})
+                if len(propios) != 2 or any(r is None or r[0] != lados[lado] for r in propios):
+                    continue
+                i, j = sorted(r[1] for r in propios)
+                gano = (par["sets_local"] > par["sets_visitante"]) == (lado == "local")
+                e = teams[lados[lado]]["pairs"].setdefault(f"{i}-{j}", [0, 0, 0, 0])
+                e[0] += 1
+                e[1] += 1 if gano else 0
+                if suma[lado] is not None and suma[otro] is not None and suma[otro] > suma[lado]:
+                    e[3] += 1
+                    e[2] += 1 if gano else 0
+        for lado in lados:  # el último enfrentamiento jugado de cada equipo = su alineación más reciente
+            teams[lados[lado]]["last"] = {
+                "date": d.get("fecha_iso") or "", "rival": d["visitante" if lado == "local" else "local"],
+                "pairs": alineacion[lado]}
+    return teams
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--id", default="28942", help="id de la liga (parámetro id de la URL)")
@@ -345,7 +505,20 @@ def main():
     ap.add_argument("--file-resultado", help="probar el parser con una página Liga_Resultado guardada")
     ap.add_argument("--sin-detalle", action="store_true",
                     help="no descargar el detalle de cada enfrentamiento (más rápido)")
+    ap.add_argument("--sin-plantillas", action="store_true",
+                    help="no descargar las plantillas con puntos (calculadora de alineaciones)")
+    ap.add_argument("--file-plantilla", help="probar el parser con una página Liga_DetalleEquipo guardada")
     args = ap.parse_args()
+
+    if args.file_plantilla:
+        with open(args.file_plantilla, "rb") as f:
+            crudo = f.read()
+        try:
+            html = crudo.decode("utf-8")
+        except UnicodeDecodeError:
+            html = crudo.decode("iso-8859-1")
+        print(json.dumps(parsear_plantilla(html), ensure_ascii=False, indent=1))
+        return
 
     if args.file_resultado:
         with open(args.file_resultado, "rb") as f:
@@ -406,6 +579,14 @@ def main():
     ruta_jug = os.path.join(args.salida, "jugadores.json")
     guardar_json(ruta_jug, {"updatedAt": datos["updatedAt"], "players": jugadores})
     print(f"  {ruta_jug}: {len(jugadores)} jugadores")
+
+    if not args.file and not args.sin_plantillas:
+        ruta_pl = os.path.join(args.salida, "plantillas.json")
+        crudo = completar_plantillas(args.id, toda_clasif, ruta_pl)
+        plantillas = construir_plantillas(toda_clasif, detalle, crudo)
+        guardar_json(ruta_pl, {"updatedAt": datos["updatedAt"], "teams": plantillas})
+        con_puntos = sum(1 for t in plantillas.values() if t["players"])
+        print(f"  {ruta_pl}: {len(plantillas)} equipos ({con_puntos} con plantilla)")
 
 
 if __name__ == "__main__":
