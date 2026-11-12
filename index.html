@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padelaldia - Liga Cántabra de Pádel</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
+    <!-- Header -->
+    <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 text-slate-950 p-2.5 rounded-xl font-black text-xl tracking-wider shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">Padelaldia</h1>
+                    <p class="text-xs text-slate-400">Liga Cántabra de Pádel • Calendarios y Estadísticas</p>
+                </div>
+            </div>
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+                <i class="fa-regular fa-clock text-emerald-400"></i>
+                <span id="updatedAt">Cargando datos...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <!-- Filtros -->
+        <div class="bg-slate-950/80 backdrop-blur border border-slate-800 rounded-2xl p-4 shadow-xl">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div class="md:col-span-2 relative">
+                    <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar equipo o club (ej. Mioño, Liencres, Troyanos...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                </div>
+                <select id="generoFilter" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                    <option value="all">Masculino y femenino</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                </select>
+                <select id="categoryFilter" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                    <option value="all">Todas las categorías</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Ficha del equipo -->
+            <div class="lg:col-span-2 space-y-6 order-2 lg:order-1">
+                <div id="teamCard" class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <div>
+                            <span id="teamCategoryBadge" class="text-xs uppercase tracking-wider font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20"></span>
+                            <h2 id="teamNameTitle" class="text-2xl font-black text-white mt-2"></h2>
+                        </div>
+                        <button onclick="copiarAvisoWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-emerald-400 text-sm"></i> Copiar aviso WhatsApp
+                        </button>
+                    </div>
+
+                    <!-- Resumen -->
+                    <div id="teamStats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"></div>
+
+                    <!-- Próximo partido -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 mb-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-days text-emerald-400"></i> Próximo enfrentamiento
+                            </span>
+                            <span id="nextMatchDate" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md">--</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <p id="nextMatchWhere" class="text-xs text-slate-400"></p>
+                                <p id="nextMatchRival" class="text-lg font-bold text-white mt-0.5">--</p>
+                                <p id="nextMatchSede" class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-location-dot text-emerald-400"></i> <span>--</span>
+                                </p>
+                            </div>
+                            <a id="mapLink" href="#" target="_blank" rel="noopener" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition items-center gap-2 shadow-md w-full sm:w-auto justify-center">
+                                <i class="fa-solid fa-diamond-turn-right"></i> Cómo llegar (Maps)
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Calendario y resultados -->
+                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> Calendario y resultados
+                    </h3>
+                    <div class="overflow-x-auto rounded-xl border border-slate-800 mb-6">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900 text-xs text-slate-400 border-b border-slate-800">
+                                    <th class="p-3">Jor.</th>
+                                    <th class="p-3">Fecha</th>
+                                    <th class="p-3">Rival</th>
+                                    <th class="p-3 text-center">Resultado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matchHistoryBody" class="divide-y divide-slate-800 text-sm"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Clasificación del grupo -->
+                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-ranking-star text-emerald-400"></i> Clasificación del grupo
+                    </h3>
+                    <div class="overflow-x-auto rounded-xl border border-slate-800">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900 text-xs text-slate-400 border-b border-slate-800">
+                                    <th class="p-3">#</th>
+                                    <th class="p-3">Equipo</th>
+                                    <th class="p-3 text-center">Enf.</th>
+                                    <th class="p-3 text-center">Pts</th>
+                                    <th class="p-3 text-center">Part. G</th>
+                                    <th class="p-3 text-center">Av. sets</th>
+                                    <th class="p-3 text-center">Av. juegos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="standingsBody" class="divide-y divide-slate-800 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="emptyState" class="bg-slate-950 border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
+                    <div class="w-16 h-16 bg-slate-900 border border-slate-800 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Busca tu equipo en la Liga Cántabra</h3>
+                    <p class="text-sm text-slate-400 max-w-md mx-auto mt-1">Escribe el nombre de tu club arriba o selecciona un equipo del listado para consultar su calendario, resultados y clasificación.</p>
+                </div>
+            </div>
+
+            <!-- Listado de equipos -->
+            <div class="space-y-4 order-1 lg:order-2">
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-emerald-400"></i> Equipos
+                        </h3>
+                        <span id="teamsCountBadge" class="text-xs bg-slate-900 text-slate-400 px-2 py-0.5 rounded-full border border-slate-800">0</span>
+                    </div>
+                    <div id="teamsList" class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                        <p class="text-xs text-slate-500 text-center py-6">Cargando equipos de la FCP...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-4 py-8 text-center text-xs text-slate-500 border-t border-slate-800/60 mt-12">
+        <p>Padelaldia • Datos de la Federación Cántabra de Pádel (FCP), actualizados automáticamente</p>
+    </footer>
+
+    <script>
+        let DATA = { teams: [], categories: [] };
+        let selectedKey = null;
+
+        const $ = (id) => document.getElementById(id);
+        const keyOf = (t) => t.categoryId + ':' + t.id;
+
+        // Los datos vienen de otra web: se escapan antes de pintarlos
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        async function cargarDatos() {
+            try {
+                const res = await fetch('datos/data.json', { cache: 'no-cache' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                DATA = await res.json();
+                const f = new Date(DATA.updatedAt);
+                $('updatedAt').textContent = 'Datos actualizados: ' +
+                    f.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+                poblarCategorias();
+                aplicarFiltros();
+                const hash = decodeURIComponent(location.hash.replace(/^#/, ''));
+                if (hash && DATA.teams.some((t) => keyOf(t) === hash)) seleccionarEquipo(hash, false);
+            } catch (e) {
+                console.error(e);
+                $('updatedAt').textContent = 'No se pudieron cargar los datos';
+                $('teamsList').innerHTML =
+                    '<p class="text-xs text-red-400 text-center py-6">No se pudieron cargar los datos (' + esc(e.message) + ').</p>';
+            }
+        }
+
+        function poblarCategorias() {
+            const genero = $('generoFilter').value;
+            const sel = $('categoryFilter');
+            const actual = sel.value;
+            sel.innerHTML = '<option value="all">Todas las categorías</option>';
+            DATA.categories
+                .filter((c) => genero === 'all' || c.genero === genero)
+                .forEach((c) => {
+                    const o = document.createElement('option');
+                    o.value = c.id;
+                    o.textContent = c.name;
+                    sel.appendChild(o);
+                });
+            if ([...sel.options].some((o) => o.value === actual)) sel.value = actual;
+        }
+
+        function equiposFiltrados() {
+            const term = $('searchInput').value.trim().toLowerCase();
+            const genero = $('generoFilter').value;
+            const cat = $('categoryFilter').value;
+            return DATA.teams.filter((t) =>
+                (genero === 'all' || t.genero === genero) &&
+                (cat === 'all' || t.categoryId === cat) &&
+                (!term || t.name.toLowerCase().includes(term) || t.category.toLowerCase().includes(term)));
+        }
+
+        function aplicarFiltros() {
+            renderizarLista(equiposFiltrados());
+        }
+
+        function renderizarLista(teams) {
+            $('teamsCountBadge').textContent = teams.length;
+            if (!teams.length) {
+                $('teamsList').innerHTML = '<p class="text-xs text-slate-500 text-center py-6">No se encontraron equipos.</p>';
+                return;
+            }
+            $('teamsList').innerHTML = teams.map((t) => `
+                <div onclick="seleccionarEquipo('${esc(keyOf(t))}')" class="bg-slate-900 hover:bg-slate-800 border ${keyOf(t) === selectedKey ? 'border-emerald-500/60' : 'border-slate-800'} hover:border-emerald-500/50 p-3 rounded-xl cursor-pointer transition flex items-center justify-between group">
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-white group-hover:text-emerald-400 transition truncate">${esc(t.name)}</p>
+                        <p class="text-xs text-slate-400 mt-0.5 truncate">${esc(t.category)} · ${esc(t.position)}º</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-600 group-hover:text-emerald-400 transition ml-2"></i>
+                </div>`).join('');
+        }
+
+        function proximoPartido(team) {
+            const pendientes = team.matches.filter((m) => m.estado !== 'cerrados');
+            return pendientes.find((m) => m.estado === 'confecha') || pendientes[0] || null;
+        }
+
+        function resultadoHtml(m) {
+            if (m.for == null) return '<span class="text-slate-500">—</span>';
+            const color = m.for > m.against ? 'text-emerald-400' : (m.for < m.against ? 'text-red-400' : 'text-slate-300');
+            return `<span class="font-bold ${color}">${m.for} - ${m.against}</span>`;
+        }
+
+        function seleccionarEquipo(key, scroll = true) {
+            const team = DATA.teams.find((t) => keyOf(t) === key);
+            if (!team) return;
+            selectedKey = key;
+            history.replaceState(null, '', '#' + encodeURIComponent(key));
+
+            $('emptyState').classList.add('hidden');
+            $('teamCard').classList.remove('hidden');
+            $('teamNameTitle').textContent = team.name;
+            $('teamCategoryBadge').textContent = team.category;
+
+            const s = team.stats;
+            const caja = (etiqueta, valor) => `
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+                    <p class="text-xl font-black text-white">${esc(valor)}</p>
+                    <p class="text-[11px] uppercase tracking-wider text-slate-400 mt-0.5">${etiqueta}</p>
+                </div>`;
+            $('teamStats').innerHTML =
+                caja('Posición', team.position + 'º') +
+                caja('Puntos', s.puntos) +
+                caja('Enfrentamientos', s.enfrentamientos) +
+                caja('Partidos ganados', s.partidos_ganados + '/' + s.partidos_disputados);
+
+            const next = proximoPartido(team);
+            if (next) {
+                $('nextMatchDate').textContent = (next.date || 'Por confirmar') + (next.time ? ' · ' + next.time : '');
+                $('nextMatchWhere').textContent = next.home ? 'Juega en casa contra:' : 'Juega fuera contra:';
+                $('nextMatchRival').textContent = next.rival;
+                $('nextMatchSede').querySelector('span').textContent = next.sede || 'Sede por confirmar';
+                const link = $('mapLink');
+                if (next.sede) {
+                    link.href = 'https://www.google.com/maps/search/?api=1&query=' +
+                        encodeURIComponent(next.sede + ' Cantabria');
+                    link.classList.remove('hidden');
+                    link.classList.add('flex');
+                } else {
+                    link.classList.add('hidden');
+                    link.classList.remove('flex');
+                }
+            } else {
+                $('nextMatchDate').textContent = 'Sin partidos pendientes';
+                $('nextMatchWhere').textContent = '';
+                $('nextMatchRival').textContent = '—';
+                $('nextMatchSede').querySelector('span').textContent = '—';
+                $('mapLink').classList.add('hidden');
+                $('mapLink').classList.remove('flex');
+            }
+
+            $('matchHistoryBody').innerHTML = team.matches.map((m) => `
+                <tr class="hover:bg-slate-900/50 transition">
+                    <td class="p-3 font-semibold text-slate-300">${esc(m.jornada)}</td>
+                    <td class="p-3 text-slate-400">${esc(m.date || 'Por fijar')}${m.time ? ' · ' + esc(m.time) : ''}</td>
+                    <td class="p-3 text-white font-medium">
+                        <span class="text-[10px] uppercase tracking-wider ${m.home ? 'text-emerald-400' : 'text-slate-500'} mr-1">${m.home ? 'Local' : 'Visit.'}</span>${esc(m.rival)}
+                    </td>
+                    <td class="p-3 text-center">${resultadoHtml(m)}</td>
+                </tr>`).join('');
+
+            const grupo = DATA.teams
+                .filter((t) => t.categoryId === team.categoryId)
+                .sort((a, b) => a.position - b.position);
+            $('standingsBody').innerHTML = grupo.map((t) => `
+                <tr onclick="seleccionarEquipo('${esc(keyOf(t))}', false)" class="cursor-pointer hover:bg-slate-900/50 transition ${t.id === team.id ? 'bg-emerald-500/10' : ''}">
+                    <td class="p-3 font-semibold text-slate-300">${esc(t.position)}</td>
+                    <td class="p-3 text-white font-medium">${esc(t.name)}</td>
+                    <td class="p-3 text-center text-slate-300">${esc(t.stats.enfrentamientos)}</td>
+                    <td class="p-3 text-center font-bold text-emerald-400">${esc(t.stats.puntos)}</td>
+                    <td class="p-3 text-center text-slate-300">${esc(t.stats.partidos_ganados)}</td>
+                    <td class="p-3 text-center text-slate-400">${esc(t.stats.average_sets)}</td>
+                    <td class="p-3 text-center text-slate-400">${esc(t.stats.average_juegos)}</td>
+                </tr>`).join('');
+
+            aplicarFiltros();
+            if (scroll) $('teamCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function copiarAvisoWhatsApp() {
+            const team = DATA.teams.find((t) => keyOf(t) === selectedKey);
+            if (!team) return;
+            const n = proximoPartido(team);
+            const fecha = n ? (n.date || 'Por confirmar') + (n.time ? ' ' + n.time : '') : 'Sin partidos pendientes';
+            const texto = `🎾 *PRÓXIMO PARTIDO - ${team.name.toUpperCase()}*\n\n` +
+                `📅 Fecha: ${fecha}\n` +
+                `🆚 Rival: ${n ? n.rival : '—'}${n ? (n.home ? ' (en casa)' : ' (fuera)') : ''}\n` +
+                `📍 Sede: ${n && n.sede ? n.sede : 'Por confirmar'}\n\n` +
+                `Consulta calendario y resultados en Padelaldia.`;
+            navigator.clipboard.writeText(texto).then(
+                () => alert('¡Aviso copiado al portapapeles! Ya puedes pegarlo en tu grupo de WhatsApp.'),
+                () => alert('No se pudo copiar automáticamente. Copia este texto:\n\n' + texto));
+        }
+
+        $('searchInput').addEventListener('input', aplicarFiltros);
+        $('generoFilter').addEventListener('change', () => { poblarCategorias(); aplicarFiltros(); });
+        $('categoryFilter').addEventListener('change', aplicarFiltros);
+        window.addEventListener('DOMContentLoaded', cargarDatos);
+    </script>
+</body>
+</html>
