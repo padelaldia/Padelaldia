@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-11-12T10:14:06+00:00",
+ "updatedAt": "2026-11-12T10:42:07+00:00",
  "ligaId": "28942",
  "categories": [
   {
@@ -962,13 +962,13 @@
      "home": false,
      "rival": "SMASH SANTANDER A",
      "estado": "sinvalidar",
-     "date": "1/3",
+     "date": "",
      "time": "",
      "tandas": "",
      "sede": "",
-     "result": "",
-     "for": null,
-     "against": null
+     "result": "1/3",
+     "for": 3,
+     "against": 1
     },
     {
      "partido": 15,
@@ -1181,13 +1181,13 @@
      "home": true,
      "rival": "MONTEVERDE A",
      "estado": "sinvalidar",
-     "date": "1/3",
+     "date": "",
      "time": "",
      "tandas": "",
      "sede": "",
-     "result": "",
-     "for": null,
-     "against": null
+     "result": "1/3",
+     "for": 1,
+     "against": 3
     },
     {
      "partido": 16,
@@ -23211,13 +23211,13 @@
      "home": false,
      "rival": "MONTEVERDE H",
      "estado": "sinvalidar",
-     "date": "0/4",
+     "date": "",
      "time": "",
      "tandas": "",
      "sede": "",
-     "result": "",
-     "for": null,
-     "against": null
+     "result": "0/4",
+     "for": 4,
+     "against": 0
     },
     {
      "partido": 4,
@@ -23593,13 +23593,13 @@
      "home": true,
      "rival": "C.D.E. ESCALANTE PADEL CLUB",
      "estado": "sinvalidar",
-     "date": "0/4",
+     "date": "",
      "time": "",
      "tandas": "",
      "sede": "",
-     "result": "",
-     "for": null,
-     "against": null
+     "result": "0/4",
+     "for": 0,
+     "against": 4
     },
     {
      "partido": 5,
