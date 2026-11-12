@@ -14,6 +14,8 @@ Genera en la carpeta de salida:
 """
 import argparse
 import csv
+import datetime
+import json
 import os
 import re
 import time
@@ -132,6 +134,52 @@ def guardar(ruta, filas):
     print(f"  {ruta}: {len(filas)} filas")
 
 
+def construir_json(partidos, clasif, liga_id):
+    """Agrupa todo por equipo para que la web lo lea de una vez (data.json)."""
+    categorias, equipos = {}, {}
+    for c in clasif:
+        categorias.setdefault(c["grupo_id"], {
+            "id": c["grupo_id"], "name": c["grupo"],
+            "genero": c["genero"], "fase": c["fase"]})
+        equipos[(c["grupo_id"], c["equipo"])] = {
+            "id": c["id_equipo"], "name": c["equipo"],
+            "category": c["grupo"], "categoryId": c["grupo_id"],
+            "genero": c["genero"], "fase": c["fase"],
+            "position": int(c["posicion"]),
+            "stats": {k: c[k] for k in (
+                "enfrentamientos", "puntos", "partidos_disputados", "partidos_ganados",
+                "sets_favor", "sets_contra", "average_sets",
+                "juegos_favor", "juegos_contra", "average_juegos")},
+            "matches": [],
+        }
+
+    for p in sorted(partidos, key=lambda x: (x["grupo_id"], x["partido"])):
+        gol, gvis = None, None
+        if p["resultado"] and "/" in p["resultado"]:
+            a, b = p["resultado"].split("/", 1)
+            gol, gvis = int(a), int(b)
+        for propio, rival, es_local in ((p["local"], p["visitante"], True),
+                                        (p["visitante"], p["local"], False)):
+            eq = equipos.get((p["grupo_id"], propio))
+            if not eq:
+                continue
+            eq["matches"].append({
+                "partido": p["partido"], "jornada": p["jornada_aprox"],
+                "home": es_local, "rival": rival, "estado": p["estado"],
+                "date": p["fecha_texto"], "time": p["hora"],
+                "tandas": p["tandas"], "sede": p["lugar"],
+                "result": p["resultado"],
+                "for": None if gol is None else (gol if es_local else gvis),
+                "against": None if gol is None else (gvis if es_local else gol),
+            })
+    return {
+        "updatedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "ligaId": liga_id,
+        "categories": list(categorias.values()),
+        "teams": list(equipos.values()),
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--id", default="28942", help="id de la liga (parámetro id de la URL)")
@@ -174,7 +222,12 @@ def main():
     guardar(os.path.join(args.salida, "clasificacion.csv"), toda_clasif)
     guardar(os.path.join(args.salida, "equipos.csv"), equipos)
 
+    datos = construir_json(todos_partidos, toda_clasif, args.id)
+    ruta_json = os.path.join(args.salida, "data.json")
+    with open(ruta_json, "w", encoding="utf-8") as f:
+        json.dump(datos, f, ensure_ascii=False, indent=1)
+    print(f"  {ruta_json}: {len(datos['teams'])} equipos, {len(datos['categories'])} categorías")
+
 
 if __name__ == "__main__":
     main()
-
